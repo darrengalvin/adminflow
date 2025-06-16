@@ -98,13 +98,13 @@ export function Sidebar({ currentSection, onNavigate }: SidebarProps) {
           <div className="bg-gradient-to-r from-blue-50 to-slate-50 rounded-lg p-4 border border-blue-100">
             <div className="flex items-center space-x-2 mb-2">
               <Award className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-semibold text-gray-900">Professional AI Consulting</span>
+              <span className="text-sm font-semibold text-gray-900">Ready to Build Your Solution?</span>
             </div>
             <p className="text-xs text-gray-600 mb-3">
-              Get personalized AI strategy and implementation support.
+              Get a custom automation strategy session with YOUR CAIO. We'll analyze your specific processes and create a detailed implementation roadmap.
             </p>
             <button className="w-full bg-blue-600 text-white text-sm py-2 px-3 rounded-md hover:bg-blue-700 transition-colors">
-              Book Consultation
+              Book Strategy Session
             </button>
           </div>
         </div>
