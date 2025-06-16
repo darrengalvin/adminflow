@@ -20,6 +20,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
   const { notifications, removeNotification, showSuccess, showError, showAI } = useNotifications();
 
   const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState('');
   const [timeSpent, setTimeSpent] = useState('');
   const [software, setSoftware] = useState('');
   const [chatMessages, setChatMessages] = useState<Array<{type: 'ai' | 'user', message: string}>>([]);
@@ -3646,7 +3647,8 @@ Examples:
 
 The AI will understand and extract your tasks automatically!"
               rows={8}
-              onChange={(e) => handleAIProcessing(e.target.value)}
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
             />
             <div className="mt-4 flex gap-2">
@@ -3656,8 +3658,16 @@ The AI will understand and extract your tasks automatically!"
               >
                 Cancel
               </button>
+              <button
+                onClick={() => handleAIProcessing(importText)}
+                disabled={!importText.trim()}
+                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <span>🤖</span>
+                Process with AI
+              </button>
               <div className="text-xs text-gray-500 flex-1 flex items-center">
-                💡 The AI will process your content and extract individual tasks for analysis
+                💡 Click "Process with AI" to extract individual tasks for analysis
               </div>
             </div>
           </div>
