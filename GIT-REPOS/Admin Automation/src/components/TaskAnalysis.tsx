@@ -394,10 +394,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       };
       
       // Find existing workflow by name or create new one
-      const existingWorkflowKey = Object.keys(workflows).find(key => workflows[key].name === workflowName);
+      const existingWorkflow = Object.values(workflows).find((w: any) => w.name === workflowName);
       
-      if (!existingWorkflowKey) {
-        workflows[workflowName] = {
+      if (!existingWorkflow) {
+        // Create new workflow
+        const newWorkflow = {
           id: `workflow_${Date.now()}`,
           name: workflowName,
           description: `Automation workflow containing: ${automationPlan.taskName}`,
@@ -416,9 +417,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
           // Enhanced workflow properties
           aiSuggestions: nextStepSuggestions
         };
+        
+        // Save using workflow ID as key (consistent with WorkflowDesigner)
+        workflows[newWorkflow.id] = newWorkflow;
       } else {
         // Add step to existing workflow
-        const existingWorkflow = workflows[existingWorkflowKey];
         existingWorkflow.steps.push(workflowStep);
         existingWorkflow.updatedAt = new Date();
         existingWorkflow.description += `, ${automationPlan.taskName}`;
@@ -439,12 +442,19 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       // Save back to localStorage
       console.log('💾 Saving workflows to localStorage:', workflows);
       console.log('💾 Number of workflows to save:', Object.keys(workflows).length);
+      console.log('💾 Workflow structure:', Object.keys(workflows).map(id => ({ id, name: workflows[id].name })));
+      
       localStorage.setItem('automationWorkflows', JSON.stringify(workflows));
       console.log('✅ Successfully saved to localStorage');
       
       // Verify the save worked
       const verification = localStorage.getItem('automationWorkflows');
       console.log('🔍 Verification - localStorage now contains:', verification ? 'Data found' : 'No data');
+      if (verification) {
+        const parsed = JSON.parse(verification);
+        console.log('🔍 Verification - Parsed workflows:', Object.keys(parsed).length, 'workflows');
+        console.log('🔍 Verification - Workflow names:', Object.values(parsed).map((w: any) => w.name));
+      }
       
       // Show success message with next step suggestions
       const suggestionText = nextStepSuggestions.length > 0 ? 
