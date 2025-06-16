@@ -1827,66 +1827,6 @@ Only return the JSON array, no other text.`
 
     return explanation;
   };
-            purpose: "Updates company information automatically",
-            whatItDoes: "Keeps customer records up-to-date with latest information"
-          }
-        ],
-        nextSteps: `Tell your developer: "I want to connect to these Salesforce API endpoints to automatically create opportunities from high-intent leads." They'll handle the technical setup!`
-      };
-    } else if (softwareLower.includes('hubspot')) {
-      explanation = {
-        goodNews: `🎉 Perfect choice! HubSpot has an amazing API - think of it as a direct hotline that lets AI instantly update your HubSpot without you touching anything.`,
-        whatIsAPI: `An API is like having a lightning-fast assistant that can create deals, update contacts, and manage your pipeline in HubSpot automatically, 24/7.`,
-        howItWorks: `When someone requests a demo, the AI instantly creates a deal in HubSpot, researches the company size to estimate deal value, and even schedules the demo in your calendar. Zero manual work!`,
-        whatYouNeed: `Your developer needs these HubSpot "endpoints" (specific web addresses for sending data):`,
-        endpoints: [
-          {
-            name: "Create Deal",
-            endpoint: "https://api.hubapi.com/crm/v3/objects/deals",
-            purpose: "Where the AI creates new deals automatically",
-            whatItDoes: "Creates deals with estimated value, assigns to reps, and sets pipeline stage"
-          },
-          {
-            name: "Update Contact",
-            endpoint: "https://api.hubapi.com/crm/v3/objects/contacts",
-            purpose: "Keeps customer information current",
-            whatItDoes: "Updates contact records with latest interaction data"
-          }
-        ],
-        nextSteps: `Show your developer this and say: "I want to connect to these HubSpot API endpoints to automatically create deals from demo requests." They'll know exactly what to build!`
-      };
-    } else {
-      // Enhanced generic explanation with REAL API research for specific software
-      const softwareList = software.split(',').map(s => s.trim());
-      const realEndpoints = generateRealEndpointsForSoftware(softwareList, taskName);
-
-      explanation = {
-        goodNews: realEndpoints.length > 0 && !realEndpoints[0].name.includes('Need More')
-          ? `🎉 Excellent! Found specific API information for ${software} - this task is perfect for automation!`
-          : realEndpoints.length > 0 && realEndpoints[0].endpoint.includes('Depends on')
-          ? `💡 Good news! ${software} can be automated, but we need more specific software names to provide exact API details.`
-          : `🔍 To provide accurate automation guidance, please specify the exact names of your software tools.`,
-        whatIsAPI: `An API is like having a robot assistant that can do tasks in your software instantly, without you having to click buttons or type anything.`,
-        howItWorks: `The AI watches for your trigger (like an email or form submission), then automatically does the task in your software. Instead of taking you ${Math.round(weeklyHours * 60)} minutes per week, it happens in seconds!`,
-        whatYouNeed: realEndpoints.length > 0
-          ? `Great news! AI research found these REAL automation options for ${software}:`
-          : `AI is researching the best automation approach for ${software}. Here's what we're investigating:`,
-        endpoints: realEndpoints.length > 0 ? realEndpoints : [
-          {
-            name: "Need More Specific Software Names",
-            endpoint: `Please specify exact software names instead of "${software}"`,
-            purpose: "To provide accurate API information, we need specific software names",
-            whatItDoes: `Example: Instead of "CRM", specify "Salesforce" or "HubSpot". Instead of "Email", specify "Gmail" or "Outlook".`
-          }
-        ],
-        nextSteps: realEndpoints.length > 0
-          ? `Tell your developer: "I want to automate ${taskName} using these specific ${software} API endpoints. Here are the exact URLs and methods." They'll have everything they need!`
-          : `AI will research ${software} automation options and provide specific implementation details. Your developer will get exact API endpoints and code examples.`
-      };
-    }
-
-    return explanation;
-  };
 
   const generateRealEndpointsForSoftware = (softwareList: string[], taskName: string): any[] => {
     const endpoints: any[] = [];
