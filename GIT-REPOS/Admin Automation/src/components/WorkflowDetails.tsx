@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Play, Pause, Square, Clock, User, Tag, CheckCircle, AlertCircle, Loader, Zap } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Square, Clock, User, Tag, CheckCircle, AlertCircle, Loader, Zap, Info } from 'lucide-react';
 import { Workflow } from '../types';
 
 interface WorkflowDetailsProps {
@@ -35,21 +35,88 @@ export function WorkflowDetails({ workflow, onBack, onExecute }: WorkflowDetails
     }
   };
 
-  const getStepTypeColor = (type: string) => {
+  const getStepTypeDisplay = (type: string) => {
     switch (type) {
       case 'api':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
+        return { label: 'Automation', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: '🤖' };
       case 'ai':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
+        return { label: 'AI Processing', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: '🧠' };
       case 'decision':
-        return 'bg-amber-100 text-amber-700 border-amber-200';
+        return { label: 'Decision Point', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: '🤔' };
       case 'notification':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+        return { label: 'Send Message', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: '📧' };
       case 'document':
-        return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+        return { label: 'Create Document', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: '📄' };
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+        return { label: 'Task', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: '⚙️' };
     }
+  };
+
+  const getSimpleStepDescription = (stepName: string, stepType: string) => {
+    // Extract the main task from the step name
+    const taskName = stepName.replace('Automate: ', '').toLowerCase();
+    
+    if (taskName.includes('insurance') && taskName.includes('claim')) {
+      return 'Automatically processes insurance claims from start to finish - reads documents, extracts information, and updates your system.';
+    }
+    if (taskName.includes('email') && taskName.includes('template')) {
+      return 'Creates and manages email templates automatically - updates content, personalises messages, and keeps everything organised.';
+    }
+    if (taskName.includes('invoice')) {
+      return 'Handles invoice processing automatically - reads invoices, extracts data, and updates your accounting system.';
+    }
+    if (taskName.includes('customer') || taskName.includes('client')) {
+      return 'Manages customer information automatically - updates records, sends communications, and tracks interactions.';
+    }
+    if (taskName.includes('document')) {
+      return 'Processes documents automatically - reads content, extracts important information, and files everything properly.';
+    }
+    if (taskName.includes('appointment') || taskName.includes('scheduling')) {
+      return 'Handles appointment scheduling automatically - checks availability, books slots, and sends confirmations.';
+    }
+    if (taskName.includes('payment') || taskName.includes('billing')) {
+      return 'Manages payments and billing automatically - processes transactions, sends invoices, and tracks payments.';
+    }
+    
+    // Default description
+    return 'This automation handles the task automatically, saving you time and reducing manual work.';
+  };
+
+  const getRealisticDuration = (stepName: string) => {
+    const taskName = stepName.replace('Automate: ', '').toLowerCase();
+    
+    if (taskName.includes('insurance') && taskName.includes('claim')) {
+      return '2-3 weeks to set up';
+    }
+    if (taskName.includes('email') && taskName.includes('template')) {
+      return '3-5 days to set up';
+    }
+    if (taskName.includes('invoice')) {
+      return '1-2 weeks to set up';
+    }
+    if (taskName.includes('customer') || taskName.includes('client')) {
+      return '1-2 weeks to set up';
+    }
+    if (taskName.includes('document')) {
+      return '1-2 weeks to set up';
+    }
+    if (taskName.includes('appointment') || taskName.includes('scheduling')) {
+      return '3-5 days to set up';
+    }
+    if (taskName.includes('payment') || taskName.includes('billing')) {
+      return '1-2 weeks to set up';
+    }
+    
+    return '1-2 weeks to set up';
+  };
+
+  const getWhenItRuns = (trigger: string) => {
+    if (trigger === 'manual') return 'When you click the start button';
+    if (trigger.includes('email')) return 'When an email arrives';
+    if (trigger.includes('form')) return 'When someone submits a form';
+    if (trigger.includes('schedule')) return 'At scheduled times';
+    if (trigger.includes('file')) return 'When a file is uploaded';
+    return 'When the trigger event happens';
   };
 
   return (
@@ -71,85 +138,77 @@ export function WorkflowDetails({ workflow, onBack, onExecute }: WorkflowDetails
         <div className="flex items-center space-x-3">
           <button
             onClick={onExecute}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors text-lg font-semibold shadow-lg"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-lg flex items-center space-x-3 transition-colors text-xl font-bold shadow-lg"
           >
-            <Play className="h-5 w-5" />
-            <span>SIMULATE</span>
+            <Play className="h-6 w-6" />
+            <span>TEST THIS WORKFLOW</span>
           </button>
         </div>
       </div>
 
-      {/* Workflow Explanation */}
-      <div className="bg-gradient-to-r from-blue-50 to-emerald-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex items-center space-x-2 mb-2">
-          <Zap className="h-5 w-5 text-blue-600" />
-          <h3 className="text-gray-900 font-medium">How This Workflow Works</h3>
+      {/* What This Does - Big Clear Explanation */}
+      <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border-2 border-emerald-200 rounded-xl p-6">
+        <div className="flex items-center space-x-3 mb-3">
+          <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+            <Info className="h-6 w-6 text-emerald-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900">What This Workflow Does</h3>
         </div>
-        <p className="text-gray-700 text-sm">
-          When the trigger event occurs, these {workflow.steps.length} steps will run automatically in sequence. 
-          Click <strong>SIMULATE</strong> above to see exactly what happens!
+        <p className="text-gray-700 text-lg leading-relaxed">
+          This workflow contains <strong>{workflow.steps.length} automated tasks</strong> that will run one after another. 
+          Once you start it, everything happens automatically - no more manual work needed! 
+          Click <strong>"TEST THIS WORKFLOW"</strong> above to see exactly how it works.
         </p>
       </div>
 
-      {/* Workflow Info */}
+      {/* Simplified Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h3 className="text-gray-900 font-semibold mb-4">Workflow Status</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Status:</span>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                workflow.status === 'active' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                workflow.status === 'completed' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                workflow.status === 'failed' ? 'bg-red-100 text-red-700 border-red-200' :
-                'bg-gray-100 text-gray-700 border-gray-200'
+        <div className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-sm">
+          <h3 className="text-gray-900 font-bold mb-4 text-lg">Current Status</h3>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className={`inline-flex px-4 py-2 rounded-full text-lg font-bold border-2 ${
+                workflow.status === 'active' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' :
+                workflow.status === 'completed' ? 'bg-blue-100 text-blue-700 border-blue-300' :
+                workflow.status === 'failed' ? 'bg-red-100 text-red-700 border-red-300' :
+                'bg-gray-100 text-gray-700 border-gray-300'
               }`}>
-                {workflow.status}
-              </span>
+                {workflow.status === 'draft' ? 'Ready to Start' : 
+                 workflow.status === 'active' ? 'Currently Running' :
+                 workflow.status === 'completed' ? 'Finished' :
+                 workflow.status === 'failed' ? 'Had a Problem' : workflow.status}
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Priority:</span>
-              <span className={`text-sm font-medium ${
-                workflow.priority === 'critical' ? 'text-red-600' :
-                workflow.priority === 'high' ? 'text-amber-600' :
-                workflow.priority === 'medium' ? 'text-blue-600' :
-                'text-gray-600'
-              }`}>
-                {workflow.priority.toUpperCase()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Progress:</span>
-              <span className="text-gray-900 font-medium">{Math.round(workflow.progress)}%</span>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-gray-900">{Math.round(workflow.progress)}%</div>
+              <div className="text-gray-600">Complete</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h3 className="text-gray-900 font-semibold mb-4">Timing</h3>
+        <div className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-sm">
+          <h3 className="text-gray-900 font-bold mb-4 text-lg">Setup Time</h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Estimated:</span>
-              <span className="text-gray-900">{workflow.estimatedDuration}min</span>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {Math.floor(workflow.estimatedDuration / 60)} hours
+              </div>
+              <div className="text-gray-600">to set up completely</div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Actual:</span>
-              <span className="text-gray-900">{workflow.actualDuration || 'In progress'}min</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Created:</span>
-              <span className="text-gray-900">{formatDate(workflow.createdAt)}</span>
+            <div className="text-sm text-gray-600 text-center">
+              Created on {formatDate(workflow.createdAt)}
             </div>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h3 className="text-gray-900 font-semibold mb-4">Triggers</h3>
-          <div className="space-y-2">
+        <div className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-sm">
+          <h3 className="text-gray-900 font-bold mb-4 text-lg">How It Starts</h3>
+          <div className="space-y-3">
             {workflow.triggers.map((trigger, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                <span className="text-gray-700 text-sm">{trigger}</span>
+              <div key={index} className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                <div className="text-blue-700 font-medium text-center">
+                  {getWhenItRuns(trigger)}
+                </div>
               </div>
             ))}
           </div>
@@ -157,110 +216,133 @@ export function WorkflowDetails({ workflow, onBack, onExecute }: WorkflowDetails
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <h3 className="text-gray-900 font-semibold mb-4">Overall Progress</h3>
-        <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
+      <div className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-sm">
+        <h3 className="text-gray-900 font-bold mb-4 text-lg">Overall Progress</h3>
+        <div className="w-full bg-gray-200 rounded-full h-6 mb-3">
           <div
-            className="bg-gradient-to-r from-blue-500 to-emerald-500 h-4 rounded-full transition-all duration-500 flex items-center justify-center"
+            className="bg-gradient-to-r from-emerald-500 to-blue-500 h-6 rounded-full transition-all duration-500 flex items-center justify-center"
             style={{ width: `${workflow.progress}%` }}
           >
-            <span className="text-white text-xs font-medium">{Math.round(workflow.progress)}%</span>
+            <span className="text-white text-sm font-bold">{Math.round(workflow.progress)}%</span>
           </div>
         </div>
         <div className="flex justify-between text-sm text-gray-600">
-          <span>0%</span>
-          <span>50%</span>
-          <span>100%</span>
+          <span>Not Started</span>
+          <span>Half Done</span>
+          <span>Completed</span>
         </div>
       </div>
 
-      {/* Workflow Steps */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <h3 className="text-gray-900 font-semibold mb-4">Workflow Steps</h3>
-        <p className="text-gray-600 text-sm mb-6">
-          These steps will execute automatically when triggered:
+      {/* Workflow Steps - Much Clearer */}
+      <div className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-sm">
+        <h3 className="text-gray-900 font-bold mb-4 text-xl">The Automated Tasks</h3>
+        <p className="text-gray-600 text-lg mb-6">
+          Here's what happens automatically when this workflow runs:
         </p>
-        <div className="space-y-4">
-          {workflow.steps.map((step, index) => (
-            <div key={step.id} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-              <div className="flex items-start space-x-4">
-                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
-                  {index + 1}
+        <div className="space-y-6">
+          {workflow.steps.map((step, index) => {
+            const stepDisplay = getStepTypeDisplay(step.type);
+            return (
+              <div key={step.id} className="bg-gray-50 rounded-xl p-6 border-2 border-gray-200">
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-xl font-bold text-gray-900">{step.name}</h4>
+                      <div className="flex items-center space-x-3 flex-shrink-0">
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold border-2 ${stepDisplay.color} flex items-center space-x-1`}>
+                          <span>{stepDisplay.icon}</span>
+                          <span>{stepDisplay.label}</span>
+                        </span>
+                        {getStepStatusIcon(step.status)}
+                      </div>
+                    </div>
+                    
+                    <p className="text-gray-700 text-lg mb-4 leading-relaxed">
+                      {getSimpleStepDescription(step.name, step.type)}
+                    </p>
+                    
+                    {/* What Happens */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
+                        <div className="text-blue-600 font-bold mb-2 flex items-center space-x-2">
+                          <span>⏱️</span>
+                          <span>Setup Time</span>
+                        </div>
+                        <div className="text-gray-700 font-medium">{getRealisticDuration(step.name)}</div>
+                      </div>
+                      
+                      <div className="bg-white rounded-lg p-4 border-2 border-emerald-200">
+                        <div className="text-emerald-600 font-bold mb-2 flex items-center space-x-2">
+                          <span>🚀</span>
+                          <span>When It Runs</span>
+                        </div>
+                        <div className="text-gray-700 font-medium">
+                          {index === 0 ? getWhenItRuns(workflow.triggers[0] || 'manual') : 'After the previous task finishes'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* What You Get */}
+                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                      <div className="text-emerald-700 font-bold mb-2 flex items-center space-x-2">
+                        <span>✅</span>
+                        <span>What You Get</span>
+                      </div>
+                      <div className="text-emerald-700">
+                        No more manual work for this task - it all happens automatically!
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-gray-900 font-medium">{step.name}</h4>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStepTypeColor(step.type)}`}>
-                        {step.type}
-                      </span>
-                      {getStepStatusIcon(step.status)}
+                {/* Connection arrow to next step */}
+                {index < workflow.steps.length - 1 && (
+                  <div className="flex justify-center mt-6">
+                    <div className="flex flex-col items-center">
+                      <div className="w-px h-6 bg-gray-300"></div>
+                      <div className="text-gray-400 text-sm">then</div>
+                      <div className="w-px h-6 bg-gray-300"></div>
                     </div>
                   </div>
-                  
-                  <p className="text-gray-600 text-sm mb-3">
-                    {step.config?.description || `${step.type} step`}
-                  </p>
-                  
-                  {/* Enhanced step details */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                    <div className="bg-white rounded p-2 border border-gray-200">
-                      <div className="text-gray-500 mb-1">⏱️ Duration</div>
-                      <div className="text-gray-700">{step.config?.estimatedTime || '2-3 days'}</div>
-                    </div>
-                    
-                    <div className="bg-white rounded p-2 border border-gray-200">
-                      <div className="text-gray-500 mb-1">🔄 Trigger</div>
-                      <div className="text-gray-700">{step.config?.trigger || 'Manual trigger'}</div>
-                    </div>
-                    
-                    <div className="bg-white rounded p-2 border border-gray-200">
-                      <div className="text-gray-500 mb-1">⚡ Condition</div>
-                      <div className="text-gray-700">{step.config?.condition || 'Always run this step'}</div>
-                    </div>
-                  </div>
-                  
-                  {/* Wait time indicator */}
-                  {step.config?.waitTime && step.config.waitTime !== '0 seconds' && (
-                    <div className="mt-3 flex items-center space-x-2 text-xs text-amber-600">
-                      <Clock className="h-3 w-3" />
-                      <span>Waits {step.config.waitTime} before next step</span>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-              
-              {/* Connection line to next step */}
-              {index < workflow.steps.length - 1 && (
-                <div className="flex justify-center mt-3">
-                  <div className="w-px h-4 bg-gray-300"></div>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
         
-        <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-          <p className="text-emerald-700 text-sm text-center">
-            💡 Click <strong>SIMULATE</strong> above to see these steps in action!
-          </p>
+        <div className="mt-8 p-6 bg-gradient-to-r from-emerald-50 to-blue-50 border-2 border-emerald-200 rounded-xl">
+          <div className="text-center">
+            <div className="text-2xl mb-2">🎉</div>
+            <p className="text-emerald-700 text-lg font-bold mb-2">
+              Ready to see this in action?
+            </p>
+            <p className="text-gray-700 mb-4">
+              Click the big green button at the top to test this workflow and see exactly how it works!
+            </p>
+            <button
+              onClick={onExecute}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+            >
+              TEST THIS WORKFLOW
+            </button>
+          </div>
         </div>
       </div>
 
-
-
-      {/* Tags */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <h3 className="text-gray-900 font-semibold mb-4">Tags</h3>
-        <div className="flex flex-wrap gap-2">
+      {/* Tags - Simplified */}
+      <div className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-sm">
+        <h3 className="text-gray-900 font-bold mb-4 text-lg">Related To</h3>
+        <div className="flex flex-wrap gap-3">
           {workflow.tags.map((tag) => (
             <span
               key={tag}
-              className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full flex items-center space-x-1 border border-blue-200"
+              className="px-4 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-full border-2 border-blue-200"
             >
-              <Tag className="h-3 w-3" />
-              <span>{tag}</span>
+              {tag}
             </span>
           ))}
         </div>
