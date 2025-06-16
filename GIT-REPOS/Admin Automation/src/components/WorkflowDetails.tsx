@@ -248,47 +248,7 @@ export function WorkflowDetails({ workflow, onBack, onExecute }: WorkflowDetails
         </div>
       </div>
 
-      {/* AI Suggestions for Next Steps */}
-      {(workflow as any).aiSuggestions && (workflow as any).aiSuggestions.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h3 className="text-gray-900 font-semibold mb-4 flex items-center space-x-2">
-            <span>🤖</span>
-            <span>AI Suggests These Next Steps</span>
-          </h3>
-          <p className="text-gray-600 text-sm mb-4">
-            Based on your current workflow, here are some intelligent next steps you might want to add:
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(workflow as any).aiSuggestions.map((suggestion: any, index: number) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-lg">{suggestion.icon}</span>
-                  <h4 className="text-gray-900 font-medium text-sm">{suggestion.name}</h4>
-                </div>
-                <p className="text-gray-600 text-xs mb-3">{suggestion.description}</p>
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Duration:</span>
-                    <span className="text-gray-700">{suggestion.estimatedTime}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Trigger:</span>
-                    <span className="text-gray-700 text-right">{suggestion.trigger}</span>
-                  </div>
-                  <div className="text-gray-500 text-xs">
-                    <strong>Condition:</strong> {suggestion.condition}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-blue-700 text-sm text-center">
-              💡 These suggestions are based on common workflow patterns for your type of automation
-            </p>
-          </div>
-        </div>
-      )}
+
 
       {/* Tags */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">

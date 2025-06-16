@@ -46,6 +46,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
   const [apiConfigured, setApiConfigured] = useState<boolean | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisStep, setAnalysisStep] = useState('');
+  const [relatedTaskSuggestions, setRelatedTaskSuggestions] = useState<any[]>([]);
 
   // Helper function to safely render any data that might be an object
   const safeRender = (data: any): string => {
@@ -348,6 +349,208 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
     return suggestions.slice(0, 3); // Return top 3 suggestions
   };
 
+  const generateRelatedTaskSuggestions = (currentTask: any): any[] => {
+    if (!currentTask?.aiSuggestion) return [];
+    
+    const automationPlan = currentTask.aiSuggestion;
+    const software = automationPlan.currentProcess?.software || '';
+    const taskType = automationPlan.automation?.type || '';
+    const taskName = currentTask.name || '';
+    
+    const suggestions = [];
+    
+    // Email/Communication related tasks
+    if (taskType === 'Email Processing' || software.toLowerCase().includes('email') || software.toLowerCase().includes('gmail') || software.toLowerCase().includes('outlook')) {
+      suggestions.push({
+        name: 'Email template creation and management',
+        description: 'Automate creation and updating of email templates for different scenarios',
+        software: software,
+        timeSpent: '2 hours per week',
+        icon: '📧'
+      });
+      
+      suggestions.push({
+        name: 'Email signature updates across team',
+        description: 'Automatically update email signatures when staff details change',
+        software: software,
+        timeSpent: '1 hour per week',
+        icon: '✍️'
+      });
+      
+      suggestions.push({
+        name: 'Email attachment organisation',
+        description: 'Automatically save and categorise email attachments to correct folders',
+        software: `${software}, Google Drive`,
+        timeSpent: '3 hours per week',
+        icon: '📎'
+      });
+    }
+    
+    // CRM related tasks
+    if (software.toLowerCase().includes('crm') || software.toLowerCase().includes('salesforce') || software.toLowerCase().includes('hubspot') || software.toLowerCase().includes('pipedrive')) {
+      suggestions.push({
+        name: 'Lead scoring and qualification',
+        description: 'Automatically score and qualify leads based on behaviour and demographics',
+        software: software,
+        timeSpent: '4 hours per week',
+        icon: '🎯'
+      });
+      
+      suggestions.push({
+        name: 'Follow-up task creation',
+        description: 'Automatically create follow-up tasks based on deal stage and timeline',
+        software: software,
+        timeSpent: '2 hours per week',
+        icon: '📅'
+      });
+      
+      suggestions.push({
+        name: 'Customer data enrichment',
+        description: 'Automatically enrich customer records with social media and company data',
+        software: `${software}, LinkedIn, Companies House`,
+        timeSpent: '3 hours per week',
+        icon: '🔍'
+      });
+    }
+    
+    // Document/Form processing
+    if (taskType === 'Form Processing' || software.toLowerCase().includes('form') || software.toLowerCase().includes('document') || taskName.toLowerCase().includes('document')) {
+      suggestions.push({
+        name: 'Document approval workflow',
+        description: 'Automate document review and approval process with notifications',
+        software: `${software}, Email`,
+        timeSpent: '5 hours per week',
+        icon: '✅'
+      });
+      
+      suggestions.push({
+        name: 'Contract generation from templates',
+        description: 'Generate personalised contracts from templates using form data',
+        software: `${software}, Word, PDF`,
+        timeSpent: '3 hours per week',
+        icon: '📄'
+      });
+      
+      suggestions.push({
+        name: 'Invoice processing and matching',
+        description: 'Automatically process invoices and match to purchase orders',
+        software: `${software}, Accounting Software`,
+        timeSpent: '6 hours per week',
+        icon: '💰'
+      });
+    }
+    
+    // Data entry and management
+    if (taskName.toLowerCase().includes('data') || taskName.toLowerCase().includes('entry') || taskName.toLowerCase().includes('update')) {
+      suggestions.push({
+        name: 'Data validation and cleaning',
+        description: 'Automatically validate and clean data entries for consistency',
+        software: `${software}, Excel`,
+        timeSpent: '4 hours per week',
+        icon: '🧹'
+      });
+      
+      suggestions.push({
+        name: 'Report generation and distribution',
+        description: 'Automatically generate and distribute regular reports to stakeholders',
+        software: `${software}, Email`,
+        timeSpent: '3 hours per week',
+        icon: '📊'
+      });
+      
+      suggestions.push({
+        name: 'Database synchronisation',
+        description: 'Keep multiple databases in sync with automatic data updates',
+        software: `${software}, Multiple Systems`,
+        timeSpent: '2 hours per week',
+        icon: '🔄'
+      });
+    }
+    
+    // Customer service related
+    if (taskName.toLowerCase().includes('customer') || taskName.toLowerCase().includes('support') || taskName.toLowerCase().includes('service')) {
+      suggestions.push({
+        name: 'Customer feedback collection and analysis',
+        description: 'Automatically collect and analyse customer feedback from multiple channels',
+        software: `${software}, Survey Tools`,
+        timeSpent: '4 hours per week',
+        icon: '💬'
+      });
+      
+      suggestions.push({
+        name: 'Support ticket routing and prioritisation',
+        description: 'Automatically route and prioritise support tickets based on content and urgency',
+        software: `${software}, Help Desk`,
+        timeSpent: '3 hours per week',
+        icon: '🎫'
+      });
+      
+      suggestions.push({
+        name: 'Customer onboarding automation',
+        description: 'Automate the customer onboarding process with personalised communications',
+        software: `${software}, Email, CRM`,
+        timeSpent: '5 hours per week',
+        icon: '🚀'
+      });
+    }
+    
+    // Financial/Accounting tasks
+    if (taskName.toLowerCase().includes('invoice') || taskName.toLowerCase().includes('payment') || taskName.toLowerCase().includes('financial') || taskName.toLowerCase().includes('accounting')) {
+      suggestions.push({
+        name: 'Expense report processing',
+        description: 'Automatically process and approve expense reports with receipt matching',
+        software: `${software}, Banking`,
+        timeSpent: '4 hours per week',
+        icon: '💳'
+      });
+      
+      suggestions.push({
+        name: 'Payment reminder automation',
+        description: 'Automatically send payment reminders based on invoice due dates',
+        software: `${software}, Email`,
+        timeSpent: '2 hours per week',
+        icon: '⏰'
+      });
+      
+      suggestions.push({
+        name: 'Financial reconciliation',
+        description: 'Automatically reconcile transactions between different financial systems',
+        software: `${software}, Banking, Accounting`,
+        timeSpent: '6 hours per week',
+        icon: '⚖️'
+      });
+    }
+    
+    // If no specific matches, provide general business automation suggestions
+    if (suggestions.length === 0) {
+      suggestions.push({
+        name: 'Meeting scheduling and coordination',
+        description: 'Automate meeting scheduling with availability checking and calendar updates',
+        software: 'Calendar, Email',
+        timeSpent: '2 hours per week',
+        icon: '📅'
+      });
+      
+      suggestions.push({
+        name: 'Social media content scheduling',
+        description: 'Automatically schedule and post social media content across platforms',
+        software: 'Social Media Platforms',
+        timeSpent: '3 hours per week',
+        icon: '📱'
+      });
+      
+      suggestions.push({
+        name: 'Inventory level monitoring',
+        description: 'Automatically monitor inventory levels and trigger reorder alerts',
+        software: 'Inventory System, Email',
+        timeSpent: '2 hours per week',
+        icon: '📦'
+      });
+    }
+    
+    return suggestions.slice(0, 3); // Return top 3 suggestions
+  };
+
   const handleAddToWorkflow = async (workflowName: string) => {
     try {
       console.log('🚀 handleAddToWorkflow called with workflowName:', workflowName);
@@ -365,8 +568,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       const automationPlan = finalTask.aiSuggestion;
       console.log('📋 Automation plan:', automationPlan.taskName);
       
-      // Generate AI suggestions for next steps
-      const nextStepSuggestions = await generateNextStepSuggestions(finalTask);
+      // No longer generating workflow step suggestions
       
       // Get existing workflows from localStorage
       const savedWorkflows = localStorage.getItem('automationWorkflows');
@@ -423,7 +625,6 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
           totalAnnualSavings: parseInt(automationPlan.impact.valuePerYear.replace(/[^0-9]/g, '')) || 0,
           totalWeeklyHours: parseFloat(automationPlan.currentProcess.timePerWeek) || 0,
           // Enhanced workflow properties
-          aiSuggestions: nextStepSuggestions
         };
         
         // Save using workflow ID as key (consistent with WorkflowDesigner)
@@ -439,12 +640,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
         existingWorkflow.totalWeeklyHours += parseFloat(automationPlan.currentProcess.timePerWeek) || 0;
         existingWorkflow.estimatedDuration += parseInt(automationPlan.implementation.setupTime.replace(/[^0-9]/g, '')) || 60;
         
-        // Merge AI suggestions
-        if (existingWorkflow.aiSuggestions) {
-          existingWorkflow.aiSuggestions = [...existingWorkflow.aiSuggestions, ...nextStepSuggestions];
-        } else {
-          existingWorkflow.aiSuggestions = nextStepSuggestions;
-        }
+        // No longer adding AI suggestions to workflows
       }
       
       // Save back to localStorage
@@ -464,14 +660,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
         console.log('🔍 Verification - Workflow names:', Object.values(parsed).map((w: any) => w.name));
       }
       
-      // Show success message with next step suggestions
-      const suggestionText = nextStepSuggestions.length > 0 ? 
-        `🤖 AI suggests these next steps:\n${nextStepSuggestions.map(s => `• ${s.name} (${s.estimatedTime})`).join('\n')}` : '';
-      
+      // Show success message
       showAI(
         'Task Added to Workflow!',
         `Task "${automationPlan.taskName}" has been successfully added to workflow "${workflowName}".`,
-        `${suggestionText}\n\nYou can now view and manage this workflow in the Workflow Manager.`
+        `You can now view and manage this workflow in the Workflow Manager.`
       );
       setShowWorkflowCreator(false);
       setWorkflowName('');
@@ -728,6 +921,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       setFinalTask(task);
+      
+      // Generate related task suggestions
+      const suggestions = generateRelatedTaskSuggestions(task);
+      setRelatedTaskSuggestions(suggestions);
+      
       setStep('results');
       setIsAnalyzing(false);
 
@@ -776,6 +974,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       };
 
       setFinalTask(task);
+      
+      // Generate related task suggestions
+      const suggestions = generateRelatedTaskSuggestions(task);
+      setRelatedTaskSuggestions(suggestions);
+      
       setStep('results');
       setIsAnalyzing(false);
     }
@@ -977,6 +1180,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
           });
 
           setFinalTask(task);
+          
+          // Generate related task suggestions
+          const suggestions = generateRelatedTaskSuggestions(task);
+          setRelatedTaskSuggestions(suggestions);
+          
           setStep('results');
           setIsAnalyzing(false);
         }, 2000);
@@ -1034,6 +1242,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
 
       setTimeout(() => {
         setFinalTask(task);
+        
+        // Generate related task suggestions
+        const suggestions = generateRelatedTaskSuggestions(task);
+        setRelatedTaskSuggestions(suggestions);
+        
         setStep('results');
         setIsAnalyzing(false);
       }, 1000);
@@ -1079,6 +1292,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
         });
 
         setFinalTask(task);
+        
+        // Generate related task suggestions
+        const suggestions = generateRelatedTaskSuggestions(task);
+        setRelatedTaskSuggestions(suggestions);
+        
         setStep('results');
         setIsAnalyzing(false);
       }, 2000);
@@ -3719,6 +3937,56 @@ def create_ghl_opportunity(email_content, api_key):
           )}
         </div>
 
+        {/* AI Suggests Related Tasks */}
+        {relatedTaskSuggestions.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm mb-6">
+            <h3 className="text-gray-900 font-semibold mb-4 flex items-center space-x-2">
+              <span>🤖</span>
+              <span>AI Suggests These Related Tasks</span>
+            </h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Based on your current task analysis, here are some related tasks you might want to automate:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {relatedTaskSuggestions.map((suggestion, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer"
+                     onClick={() => {
+                       setTaskName(suggestion.name);
+                       setTaskDescription(suggestion.description);
+                       setSoftware(suggestion.software);
+                       setTimeSpent(suggestion.timeSpent);
+                       setStep('input');
+                       setRelatedTaskSuggestions([]);
+                     }}>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="text-lg">{suggestion.icon}</span>
+                    <h4 className="text-gray-900 font-medium text-sm">{suggestion.name}</h4>
+                  </div>
+                  <p className="text-gray-600 text-xs mb-3">{suggestion.description}</p>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Time saved:</span>
+                      <span className="text-gray-700">{suggestion.timeSpent}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Software:</span>
+                      <span className="text-gray-700 text-right">{suggestion.software}</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-center">
+                    <span className="text-blue-600 text-xs font-medium">Click to analyse this task</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-700 text-sm text-center">
+                💡 These suggestions are based on common automation patterns for your type of task
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Simple Footer Actions */}
         <div className="text-center">
           <button
@@ -3727,6 +3995,7 @@ def create_ghl_opportunity(email_content, api_key):
               setTaskName('');
               setTaskDescription('');
               setFinalTask(null);
+              setRelatedTaskSuggestions([]);
             }}
             className="text-blue-600 hover:text-blue-700 font-medium flex items-center justify-center gap-2 mx-auto"
           >
