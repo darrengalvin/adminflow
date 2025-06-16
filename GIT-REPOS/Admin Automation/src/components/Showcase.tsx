@@ -117,7 +117,7 @@ const platforms: Platform[] = [
       'Intelligent Venue Matching & Availability',
       'Automated Vendor Coordination & Booking',
       'Real-time Guest Management & RSVP Tracking',
-      'Smart Budget Planning & Cost Optimization',
+      'Smart Budget Planning & Cost Optimisation',
       'Integrated Payment Processing & Invoicing',
       'Multi-event Timeline Management',
       'Collaborative Planning Tools & Permissions',
@@ -231,7 +231,7 @@ const platforms: Platform[] = [
       {
         title: 'Peak Time Management',
         description: 'Managing high-volume bookings during peak times while maintaining safety standards and customer satisfaction.',
-        solution: 'Developed intelligent capacity management system with dynamic pricing, queue optimization, and automated safety monitoring.'
+        solution: 'Developed intelligent capacity management system with dynamic pricing, queue optimisation, and automated safety monitoring.'
       },
       {
         title: 'Safety Compliance & Documentation',
@@ -340,7 +340,7 @@ const platforms: Platform[] = [
       {
         title: 'Seasonal Demand Fluctuations',
         description: 'Managing varying demand across seasons while maintaining profitability and customer satisfaction year-round.',
-        solution: 'Developed dynamic pricing algorithms and seasonal activity recommendations to optimize bookings throughout the year.'
+        solution: 'Developed dynamic pricing algorithms and seasonal activity recommendations to optimise bookings throughout the year.'
       },
       {
         title: 'Safety & Compliance Coordination',
@@ -793,7 +793,7 @@ export function Showcase({ onBack }: ShowcaseProps) {
            </h2>
            <p className="text-lg text-gray-600 mb-8 leading-relaxed">
              Every successful AI project starts with understanding your unique business challenges. 
-             Let's explore how we can create a solution that delivers similar results for your organization.
+             Let's explore how we can create a solution that delivers similar results for your organisation.
            </p>
            <div className="flex flex-col sm:flex-row gap-4 justify-center">
              <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 shadow-sm">

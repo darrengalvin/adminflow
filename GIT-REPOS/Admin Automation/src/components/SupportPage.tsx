@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNotifications, NotificationManager } from './CustomNotification';
 
 interface SupportPageProps {
   onBack: () => void;
@@ -7,6 +8,9 @@ interface SupportPageProps {
 
 const SupportPage: React.FC<SupportPageProps> = ({ onBack, onContinue }) => {
   const [selectedOption, setSelectedOption] = useState('');
+  
+  // Custom notifications
+  const { notifications, removeNotification, showSuccess } = useNotifications();
   const [leadFormData, setLeadFormData] = useState({
     name: '',
     email: '',
@@ -37,7 +41,11 @@ const SupportPage: React.FC<SupportPageProps> = ({ onBack, onContinue }) => {
     }
     
     if (thankYouMessage) {
-      alert(thankYouMessage);
+      showSuccess(
+        'Thank You!',
+        thankYouMessage,
+        'Enjoy your free AI analysis!'
+      );
     }
     
     onContinue();
@@ -326,6 +334,12 @@ const SupportPage: React.FC<SupportPageProps> = ({ onBack, onContinue }) => {
           </p>
         </div>
       </div>
+      
+      {/* Custom Notifications */}
+      <NotificationManager 
+        notifications={notifications} 
+        onRemove={removeNotification} 
+      />
     </div>
   );
 };

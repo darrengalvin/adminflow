@@ -32,7 +32,7 @@ export function CAIOHomePage({ onStartAnalysis, onNavigate }: CAIOHomePageProps)
   const tools = [
     {
       id: 'task-analysis',
-      title: 'AI Task Automation Analyzer',
+              title: 'AI Task Automation Analyser',
       description: 'Discover which of your business tasks can be automated with AI and get detailed implementation plans.',
       icon: Brain,
       color: 'blue',
@@ -123,7 +123,7 @@ export function CAIOHomePage({ onStartAnalysis, onNavigate }: CAIOHomePageProps)
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2"
               >
                 <Sparkles className="h-5 w-5" />
-                <span>Try Our Free AI Analyzer</span>
+                <span>Try Our Free AI Analyser</span>
                 <ArrowRight className="h-5 w-5" />
               </button>
               
@@ -199,7 +199,7 @@ export function CAIOHomePage({ onStartAnalysis, onNavigate }: CAIOHomePageProps)
               className="px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
             >
               <Zap className="h-5 w-5" />
-              <span>Try Our New AI Analyzer</span>
+                              <span>Try Our New AI Analyser</span>
             </button>
             <button 
               onClick={() => setShowImplementationModal(true)}

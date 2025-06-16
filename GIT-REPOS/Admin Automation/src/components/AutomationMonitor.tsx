@@ -128,7 +128,7 @@ const TriggerEmailData: React.FC = () => {
           <div className="text-sm text-gray-700 leading-relaxed">
             <p className="mb-3">Hi there,</p>
             <p className="mb-3">
-              We're looking to organize a corporate team building event for our London office. 
+              We're looking to organise a corporate team building event for our London office. 
               We have 47 employees who would like to participate in outdoor activities followed 
               by a networking lunch.
             </p>

@@ -4,6 +4,7 @@ import { generateTaskAnalysisPDF } from '../utils/pdfGenerator';
 import { taskStorage } from '../utils/taskStorage';
 import SupportPage from './SupportPage';
 import claudeApi from '../services/claudeApi';
+import { useNotifications, NotificationManager } from './CustomNotification';
 
 interface TaskAnalysisProps {
   onBack: () => void;
@@ -14,6 +15,9 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
   const [step, setStep] = useState<'input' | 'chat' | 'results'>('input');
   const [taskName, setTaskName] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
+  
+  // Custom notifications
+  const { notifications, removeNotification, showSuccess, showError, showAI } = useNotifications();
 
   const [showImport, setShowImport] = useState(false);
   const [timeSpent, setTimeSpent] = useState('');
@@ -350,7 +354,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       
       if (!finalTask?.aiSuggestion) {
         console.log('❌ No finalTask or aiSuggestion available');
-        alert('❌ No task analysis available. Please analyze a task first.');
+        showError(
+          'No Task Analysis Available',
+          'Please analyse a task first before adding it to a workflow.',
+          'Use the AI Analyser to get detailed automation recommendations for your task.'
+        );
         return;
       }
 
@@ -458,9 +466,13 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       
       // Show success message with next step suggestions
       const suggestionText = nextStepSuggestions.length > 0 ? 
-        `\n\n🤖 AI suggests these next steps:\n${nextStepSuggestions.map(s => `• ${s.name} (${s.estimatedTime})`).join('\n')}` : '';
+        `🤖 AI suggests these next steps:\n${nextStepSuggestions.map(s => `• ${s.name} (${s.estimatedTime})`).join('\n')}` : '';
       
-      alert(`✅ Task "${automationPlan.taskName}" added to workflow "${workflowName}"!${suggestionText}\n\nYou can now view and manage this workflow in the Workflow Manager.`);
+      showAI(
+        'Task Added to Workflow!',
+        `Task "${automationPlan.taskName}" has been successfully added to workflow "${workflowName}".`,
+        `${suggestionText}\n\nYou can now view and manage this workflow in the Workflow Manager.`
+      );
       setShowWorkflowCreator(false);
       setWorkflowName('');
       setSelectedWorkflow('');
@@ -471,7 +483,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       
     } catch (error) {
       console.error('Error adding task to workflow:', error);
-      alert('❌ Error adding task to workflow. Please try again.');
+      showError(
+        'Workflow Error',
+        'Failed to add task to workflow. Please try again.',
+        'If the problem persists, check your browser console for more details.'
+      );
     }
   };
 
@@ -574,7 +590,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
 
   const startChat = () => {
     if (!taskName.trim() || !taskDescription.trim()) {
-      alert('Please tell me what the task is called and what you do');
+      showError(
+        'Missing Information',
+        'Please provide both a task name and description.',
+        'Tell us what the task is called and what you do step by step.'
+      );
       return;
     }
 
@@ -2061,7 +2081,7 @@ def create_ghl_opportunity(email_content, api_key):
       'Set up API connections',
       'Build automation workflow',
       'Test and validate',
-      'Deploy and optimize'
+              'Deploy and optimise'
     ];
   };
 
@@ -3016,7 +3036,7 @@ def create_ghl_opportunity(email_content, api_key):
                   }}>
                     <h3 className="font-bold mb-4 flex items-center gap-3 text-lg" style={{ color: 'var(--status-success)' }}>
                       <span className="text-2xl">🧠</span>
-                      AI Optimization Tips
+                      AI Optimisation Tips
                     </h3>
                     <ul className="text-sm space-y-3" style={{ color: 'var(--status-success)' }}>
                       <li className="flex items-start gap-3">
@@ -3471,7 +3491,7 @@ def create_ghl_opportunity(email_content, api_key):
               <div>
                 <div className="font-medium text-blue-900 mb-1">💾 Save to Workflow Collection</div>
                 <div className="text-sm text-blue-800">
-                  Add this automation to your workflow library so you can track, organize, and build upon it. 
+                  Add this automation to your workflow library so you can track, organise, and build upon it. 
                   Think of it like saving a recipe - you'll want to reference it later!
                 </div>
               </div>
@@ -3904,10 +3924,17 @@ def create_ghl_opportunity(email_content, api_key):
             Back to Dashboard
           </button>
         </div>
+        
+        {/* Custom Notifications */}
+        <NotificationManager 
+          notifications={notifications} 
+          onRemove={removeNotification} 
+        />
       </div>
     );
   }
 
+  // This should never be reached - all cases should be handled above
   return null;
 };
 

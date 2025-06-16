@@ -120,7 +120,7 @@ const integrationCategories = {
     { name: 'Mixpanel', icon: 'Activity', color: '#7856FF', description: 'Product analytics platform' },
     { name: 'Amplitude', icon: 'TrendingUp', color: '#1F77B4', description: 'Digital analytics platform' },
     { name: 'Hotjar', icon: 'Activity', color: '#FD3A69', description: 'Website heatmaps & recordings' },
-    { name: 'Crazy Egg', icon: 'Activity', color: '#FF6900', description: 'Website optimization tools' },
+    { name: 'Crazy Egg', icon: 'Activity', color: '#FF6900', description: 'Website optimisation tools' },
     { name: 'Kissmetrics', icon: 'BarChart', color: '#8E44AD', description: 'Customer analytics platform' },
     { name: 'Adobe Analytics', icon: 'BarChart3', color: '#FF0000', description: 'Enterprise analytics' },
     { name: 'Segment', icon: 'PieChart', color: '#52BD95', description: 'Customer data platform' },

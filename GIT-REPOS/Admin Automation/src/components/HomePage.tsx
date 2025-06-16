@@ -82,7 +82,7 @@ export function HomePage({ onStartAnalysis }: HomePageProps) {
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 rounded-full mt-2" style={{ background: 'var(--status-error)' }}></div>
                 <div>
-                  <p className="font-medium">Limited customization</p>
+                  <p className="font-medium">Limited customisation</p>
                   <p className="small-text" style={{ color: 'var(--text-secondary)' }}>
                     Constrained by platform capabilities
                   </p>
@@ -124,7 +124,7 @@ export function HomePage({ onStartAnalysis }: HomePageProps) {
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 rounded-full mt-2" style={{ background: 'var(--status-success)' }}></div>
                 <div>
-                  <p className="font-medium">Unlimited customization</p>
+                  <p className="font-medium">Unlimited customisation</p>
                   <p className="small-text" style={{ color: 'var(--text-secondary)' }}>
                     Tailored exactly to your needs
                   </p>
@@ -169,7 +169,7 @@ export function HomePage({ onStartAnalysis }: HomePageProps) {
           <h3 className="heading-3 mb-3">AI-First Architecture</h3>
           <p className="body-text" style={{ color: 'var(--text-secondary)' }}>
             Built to evolve with AI advancements, uncovering new automation opportunities 
-            and optimization strategies as technology progresses.
+            and optimisation strategies as technology progresses.
           </p>
         </div>
 
@@ -232,7 +232,7 @@ export function HomePage({ onStartAnalysis }: HomePageProps) {
                  style={{ background: 'var(--status-success)' }}>
               4
             </div>
-            <h4 className="font-semibold mb-2">Scale & Optimize</h4>
+            <h4 className="font-semibold mb-2">Scale & Optimise</h4>
             <p className="small-text" style={{ color: 'var(--text-secondary)' }}>
               Continuously improve and expand your automation ecosystem
             </p>
