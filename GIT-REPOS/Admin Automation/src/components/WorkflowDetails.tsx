@@ -9,6 +9,19 @@ interface WorkflowDetailsProps {
 }
 
 export function WorkflowDetails({ workflow, onBack, onExecute }: WorkflowDetailsProps) {
+  // Safe date formatting function
+  const formatDate = (dateValue: any): string => {
+    try {
+      if (!dateValue) return 'Unknown';
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error('Date formatting error:', error, 'for value:', dateValue);
+      return 'Invalid Date';
+    }
+  };
+
   const getStepStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -125,7 +138,7 @@ export function WorkflowDetails({ workflow, onBack, onExecute }: WorkflowDetails
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Created:</span>
-              <span className="text-white">{workflow.createdAt.toLocaleDateString()}</span>
+              <span className="text-white">{formatDate(workflow.createdAt)}</span>
             </div>
           </div>
         </div>

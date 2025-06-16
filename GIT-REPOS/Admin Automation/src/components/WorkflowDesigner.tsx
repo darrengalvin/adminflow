@@ -22,6 +22,19 @@ export function WorkflowDesigner({ onNavigateToAnalysis, onWorkflowSave, onWorkf
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [newWorkflowName, setNewWorkflowName] = useState('');
 
+  // Safe date formatting function
+  const formatDate = (dateValue: any): string => {
+    try {
+      if (!dateValue) return 'Unknown';
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error('Date formatting error:', error, 'for value:', dateValue);
+      return 'Invalid Date';
+    }
+  };
+
   useEffect(() => {
     loadWorkflowsFromStorage();
     loadAnalyzedTasksFromStorage();
@@ -572,7 +585,7 @@ export function WorkflowDesigner({ onNavigateToAnalysis, onWorkflowSave, onWorkf
 
                 <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid var(--border-secondary)' }}>
                   <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    Created {new Date(workflow.createdAt).toLocaleDateString()}
+                    Created {formatDate(workflow.createdAt)}
                   </div>
                   <div className="flex items-center gap-1">
                     {workflow.tags.slice(0, 2).map(tag => (
