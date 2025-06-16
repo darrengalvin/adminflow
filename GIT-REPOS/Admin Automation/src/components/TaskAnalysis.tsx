@@ -688,20 +688,37 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
     const lines = text.trim().split('\n').filter(line => line.trim());
     if (lines.length === 0) return;
 
+    // More robust parsing - try multiple delimiters
+    const parseTaskLine = (line: string) => {
+      // Try tab first, then multiple spaces, then comma
+      let parts = line.split('\t');
+      if (parts.length < 3) {
+        parts = line.split(/\s{2,}/); // Multiple spaces
+      }
+      if (parts.length < 3) {
+        parts = line.split(',');
+      }
+      return parts.map(part => part.trim());
+    };
+
     if (lines.length === 1) {
-      // Single task - handle normally
-      const firstLine = lines[0];
-      const parts = firstLine.split('\t').length > 1 ? firstLine.split('\t') : firstLine.split(',');
+      // Single task
+      const parts = parseTaskLine(lines[0]);
       
       if (parts.length >= 2) {
-        // Check if first column looks like a boolean/status (TRUE/FALSE)
         const firstCol = parts[0].trim().toUpperCase();
+        
         if (firstCol === 'TRUE' || firstCol === 'FALSE') {
-          // Skip the first column and use the rest
-          setTaskName(parts[1]?.trim() || '');
-          setTaskDescription(parts[4]?.trim() || parts[2]?.trim() || ''); // Try column 5 first (steps), then column 3
-          setSoftware(parts[3]?.trim() || '');
-          setTimeSpent('2 hours per week'); // Default since not in your format
+          // Your format: FALSE | Task Name | Time Frame | System | Steps
+          const taskName = parts[1]?.trim() || '';
+          const timeFrame = parts[2]?.trim() || '';
+          const system = parts[3]?.trim() || '';
+          const steps = parts[4]?.trim() || '';
+          
+          setTaskName(taskName);
+          setTaskDescription(steps || timeFrame || 'Manual process');
+          setSoftware(system || 'General software');
+          setTimeSpent('2 hours per week');
         } else {
           // Standard format
           setTaskName(parts[0].trim());
@@ -711,21 +728,29 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
         }
       }
     } else {
-      // Multiple tasks - prepare for batch processing
+      // Multiple tasks
       const tasks = lines.map((line, index) => {
-        const parts = line.split('\t').length > 1 ? line.split('\t') : line.split(',');
-        
-        // Check if first column looks like a boolean/status (TRUE/FALSE)
+        const parts = parseTaskLine(line);
         const firstCol = parts[0]?.trim().toUpperCase();
+        
         if (firstCol === 'TRUE' || firstCol === 'FALSE') {
-          // Skip the first column and use the rest
+          // Your format: FALSE | Task Name | Time Frame | System | Steps
+          const taskName = parts[1]?.trim() || `Task ${index + 1}`;
+          const timeFrame = parts[2]?.trim() || '';
+          const system = parts[3]?.trim() || '';
+          const steps = parts[4]?.trim() || '';
+          
+          // Use steps as description if available, otherwise use time frame
+          const description = steps || timeFrame || 'Manual process';
+          
           return {
             id: `batch_${index}`,
-            name: parts[1]?.trim() || `Task ${index + 1}`,
-            description: parts[4]?.trim() || parts[2]?.trim() || '', // Try column 5 first (steps), then column 3
-            software: parts[3]?.trim() || '',
-            timeSpent: '2 hours per week', // Default since not in your format
-            steps: parts[4]?.trim() || ''
+            name: taskName,
+            description: description,
+            software: system || 'General software',
+            timeSpent: '2 hours per week',
+            steps: steps,
+            timeFrame: timeFrame
           };
         } else {
           // Standard format
@@ -738,7 +763,15 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
             steps: parts[4]?.trim() || ''
           };
         }
-      }).filter(task => task.name && task.description); // Only include tasks with name and description
+      }).filter(task => {
+        // Filter out invalid tasks and make sure we don't have FALSE as task name
+        const isValid = task.name && 
+                        task.description && 
+                        task.name.toUpperCase() !== 'TRUE' && 
+                        task.name.toUpperCase() !== 'FALSE' &&
+                        task.name !== 'Process -'; // Skip header row if present
+        return isValid;
+      });
       
       if (tasks.length > 1) {
         setBatchTasks(tasks);
@@ -746,7 +779,6 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
         return;
       }
       
-      // If only one valid task after filtering, handle as single task
       if (tasks.length === 1) {
         const task = tasks[0];
         setTaskName(task.name);
@@ -3509,16 +3541,44 @@ def create_ghl_opportunity(email_content, api_key):
         {showImport && (
           <div className="bg-white rounded-xl shadow-lg border p-6 mb-8">
             <h3 className="font-semibold text-gray-800 mb-4">📊 Import Multiple Tasks</h3>
+            
+            {/* Format Examples */}
+            <div className="mb-4 space-y-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <h4 className="font-medium text-blue-900 mb-2">✅ Your Format (with TRUE/FALSE column):</h4>
+                <div className="bg-white rounded p-2 text-xs font-mono text-gray-700 border">
+                  FALSE&nbsp;&nbsp;&nbsp;&nbsp;Respond to enquiry&nbsp;&nbsp;&nbsp;&nbsp;3 attempts within 48 hours&nbsp;&nbsp;&nbsp;&nbsp;CRM&nbsp;&nbsp;&nbsp;&nbsp;1 - Check email inbox<br/>
+                  FALSE&nbsp;&nbsp;&nbsp;&nbsp;Create deal (offer made)&nbsp;&nbsp;&nbsp;&nbsp;Once you have details&nbsp;&nbsp;&nbsp;&nbsp;CRM&nbsp;&nbsp;&nbsp;&nbsp;1 - Go to customers page...
+                </div>
+                <p className="text-xs text-blue-700 mt-1">
+                  <strong>Columns:</strong> TRUE/FALSE | Task Name | Time Frame | System | Detailed Steps
+                </p>
+              </div>
+              
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <h4 className="font-medium text-green-900 mb-2">✅ Standard Format:</h4>
+                <div className="bg-white rounded p-2 text-xs font-mono text-gray-700 border">
+                  Create deal when offer is made&nbsp;&nbsp;&nbsp;&nbsp;Go into CRM and create new deal&nbsp;&nbsp;&nbsp;&nbsp;2 hours&nbsp;&nbsp;&nbsp;&nbsp;Salesforce
+                </div>
+                <p className="text-xs text-green-700 mt-1">
+                  <strong>Columns:</strong> Task Name | Description | Time per week | Software
+                </p>
+              </div>
+            </div>
+            
             <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
               <p className="text-sm text-gray-600 mb-3">
-                <strong>Format:</strong> Task Name, Description, Hours per week, Software used (one per line)
+                <strong>Paste your data below:</strong> Supports both formats above (tab-separated or comma-separated)
               </p>
               <textarea
-                placeholder="Create deal when offer is made	Go into CRM and create new deal with customer info	2	Salesforce"
-                rows={4}
+                placeholder="FALSE	Respond to enquiry	3 attempts within 48 hours	CRM	1 - Check email inbox&#10;2 - Reply within 24 hours&#10;3 - Follow up if no response"
+                rows={6}
                 onChange={(e) => handleImportTasks(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
               />
+              <div className="mt-2 text-xs text-gray-500">
+                💡 <strong>Tip:</strong> Copy directly from Excel/Google Sheets - the system will automatically detect your format
+              </div>
             </div>
           </div>
         )}
