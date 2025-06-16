@@ -230,3 +230,5 @@ This project follows strict TypeScript practices and modern React patterns. Plea
 
 <!-- Trigger deployment --> # Build fix
 # Deployment trigger - Root Directory cleared
+
+<!-- Force deployment trigger -->
