@@ -8,8 +8,6 @@ import {
   X,
   Monitor,
   Settings,
-  Target,
-  DollarSign,
   Award
 } from 'lucide-react';
 
@@ -37,13 +35,16 @@ export function MobileNavigation({ currentSection, onNavigate }: MobileNavigatio
     { id: 'integrations', label: 'Integrations', icon: Settings },
   ];
 
-  const comingSoonItems = [
-    { id: 'ai-readiness', label: 'AI Readiness Assessment', icon: Target },
-    { id: 'roi-calculator', label: 'ROI Calculator', icon: DollarSign },
-  ];
+
 
   const handleNavigate = (section: string) => {
     onNavigate(section);
+    setShowMenu(false);
+  };
+
+  const handleBookStrategy = () => {
+    // Open Calendly or external booking link
+    window.open('https://calendly.com/your-caio/strategy-session', '_blank');
     setShowMenu(false);
   };
 
@@ -194,28 +195,6 @@ export function MobileNavigation({ currentSection, onNavigate }: MobileNavigatio
                       })}
                     </div>
                   </div>
-
-                  <div>
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                      Coming Soon
-                    </h3>
-                    <div className="space-y-1">
-                      {comingSoonItems.map((item) => {
-                        const Icon = item.icon;
-                        
-                        return (
-                          <div
-                            key={item.id}
-                            className="w-full flex items-center space-x-3 px-3 py-3 rounded-lg text-gray-400"
-                          >
-                            <Icon className="h-5 w-5" />
-                            <span className="font-medium">{item.label}</span>
-                            <span className="ml-auto text-xs bg-gray-100 px-2 py-1 rounded-full">Soon</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -227,9 +206,12 @@ export function MobileNavigation({ currentSection, onNavigate }: MobileNavigatio
                     <span className="text-sm font-semibold text-gray-900">Professional AI Consulting</span>
                   </div>
                   <p className="text-xs text-gray-600 mb-3">
-                    Get personalized AI strategy and implementation support.
+                    Get personalised AI strategy and implementation support.
                   </p>
-                  <button className="w-full bg-blue-600 text-white text-sm py-2 px-3 rounded-md hover:bg-blue-700 transition-colors">
+                  <button 
+                    onClick={handleBookStrategy}
+                    className="w-full bg-blue-600 text-white text-sm py-2 px-3 rounded-md hover:bg-blue-700 transition-colors"
+                  >
                     Book Consultation
                   </button>
                 </div>

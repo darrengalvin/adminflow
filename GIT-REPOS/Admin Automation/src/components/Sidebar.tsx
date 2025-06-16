@@ -2,12 +2,10 @@ import React from 'react';
 import { 
   Home, 
   Brain, 
-  Settings, 
   Zap, 
-  Target,
-  DollarSign,
-  Award,
-  Sparkles
+  Settings, 
+  Sparkles,
+  Award
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -24,10 +22,10 @@ export function Sidebar({ currentSection, onNavigate }: SidebarProps) {
     { id: 'integrations', label: 'Integrations', icon: Settings },
   ];
 
-  const comingSoonItems = [
-    { id: 'ai-readiness', label: 'AI Readiness Assessment', icon: Target },
-    { id: 'roi-calculator', label: 'ROI Calculator', icon: DollarSign },
-  ];
+  const handleBookStrategy = () => {
+    // Open Calendly or external booking link
+    window.open('https://calendly.com/your-caio/strategy-session', '_blank');
+  };
 
   return (
     <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm z-40">
@@ -46,11 +44,8 @@ export function Sidebar({ currentSection, onNavigate }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              AI Tools
-            </h3>
+        <div className="flex-1 overflow-y-auto py-4">
+          <nav className="px-4 space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentSection === item.id;
@@ -59,10 +54,10 @@ export function Sidebar({ currentSection, onNavigate }: SidebarProps) {
                 <button
                   key={item.id}
                   onClick={() => onNavigate(item.id)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg text-left transition-colors ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   <Icon className={`h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
@@ -70,30 +65,10 @@ export function Sidebar({ currentSection, onNavigate }: SidebarProps) {
                 </button>
               );
             })}
-          </div>
+          </nav>
+        </div>
 
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Coming Soon
-            </h3>
-            {comingSoonItems.map((item) => {
-              const Icon = item.icon;
-              
-              return (
-                <div
-                  key={item.id}
-                  className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-gray-400 cursor-not-allowed"
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
-                  <span className="ml-auto text-xs bg-gray-100 px-2 py-1 rounded-full">Soon</span>
-                </div>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* Footer */}
+        {/* CTA Section */}
         <div className="p-4 border-t border-gray-200">
           <div className="bg-gradient-to-r from-blue-50 to-slate-50 rounded-lg p-4 border border-blue-100">
             <div className="flex items-center space-x-2 mb-2">
@@ -101,9 +76,12 @@ export function Sidebar({ currentSection, onNavigate }: SidebarProps) {
               <span className="text-sm font-semibold text-gray-900">Ready to Build Your Solution?</span>
             </div>
             <p className="text-xs text-gray-600 mb-3">
-              Get a custom automation strategy session with YOUR CAIO. We'll analyze your specific processes and create a detailed implementation roadmap.
+              Get a bespoke automation strategy session with YOUR CAIO. We'll analyse your specific processes and create a detailed implementation roadmap.
             </p>
-            <button className="w-full bg-blue-600 text-white text-sm py-2 px-3 rounded-md hover:bg-blue-700 transition-colors">
+            <button 
+              onClick={handleBookStrategy}
+              className="w-full bg-blue-600 text-white text-sm py-2 px-3 rounded-md hover:bg-blue-700 transition-colors"
+            >
               Book Strategy Session
             </button>
           </div>

@@ -694,23 +694,50 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       const parts = firstLine.split('\t').length > 1 ? firstLine.split('\t') : firstLine.split(',');
       
       if (parts.length >= 2) {
-        setTaskName(parts[0].trim());
-        setTaskDescription(parts[1].trim());
-        if (parts.length >= 3) setTimeSpent(parts[2].trim());
-        if (parts.length >= 4) setSoftware(parts[3].trim());
+        // Check if first column looks like a boolean/status (TRUE/FALSE)
+        const firstCol = parts[0].trim().toUpperCase();
+        if (firstCol === 'TRUE' || firstCol === 'FALSE') {
+          // Skip the first column and use the rest
+          setTaskName(parts[1]?.trim() || '');
+          setTaskDescription(parts[4]?.trim() || parts[2]?.trim() || ''); // Try column 5 first (steps), then column 3
+          setSoftware(parts[3]?.trim() || '');
+          setTimeSpent('2 hours per week'); // Default since not in your format
+        } else {
+          // Standard format
+          setTaskName(parts[0].trim());
+          setTaskDescription(parts[1].trim());
+          if (parts.length >= 3) setTimeSpent(parts[2].trim());
+          if (parts.length >= 4) setSoftware(parts[3].trim());
+        }
       }
     } else {
       // Multiple tasks - prepare for batch processing
       const tasks = lines.map((line, index) => {
         const parts = line.split('\t').length > 1 ? line.split('\t') : line.split(',');
-        return {
-          id: `batch_${index}`,
-          name: parts[0]?.trim() || `Task ${index + 1}`,
-          description: parts[1]?.trim() || '',
-          software: parts[2]?.trim() || '',
-          timeSpent: parts[3]?.trim() || '',
-          steps: parts[4]?.trim() || ''
-        };
+        
+        // Check if first column looks like a boolean/status (TRUE/FALSE)
+        const firstCol = parts[0]?.trim().toUpperCase();
+        if (firstCol === 'TRUE' || firstCol === 'FALSE') {
+          // Skip the first column and use the rest
+          return {
+            id: `batch_${index}`,
+            name: parts[1]?.trim() || `Task ${index + 1}`,
+            description: parts[4]?.trim() || parts[2]?.trim() || '', // Try column 5 first (steps), then column 3
+            software: parts[3]?.trim() || '',
+            timeSpent: '2 hours per week', // Default since not in your format
+            steps: parts[4]?.trim() || ''
+          };
+        } else {
+          // Standard format
+          return {
+            id: `batch_${index}`,
+            name: parts[0]?.trim() || `Task ${index + 1}`,
+            description: parts[1]?.trim() || '',
+            software: parts[2]?.trim() || '',
+            timeSpent: parts[3]?.trim() || '',
+            steps: parts[4]?.trim() || ''
+          };
+        }
       }).filter(task => task.name && task.description); // Only include tasks with name and description
       
       if (tasks.length > 1) {
@@ -1360,11 +1387,162 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
     return apis;
   };
 
+  const analyzeManualSteps = (description: string, software: string): any => {
+    // Extract numbered steps from description
+    const stepPattern = /(\d+[a-z]?\s*[-–—]\s*[^0-9]+?)(?=\d+[a-z]?\s*[-–—]|$)/gi;
+    const steps = description.match(stepPattern) || [];
+    
+    // If no numbered steps found, try bullet points or line breaks
+    if (steps.length === 0) {
+      const lines = description.split(/\n|•|-/).filter(line => line.trim().length > 10);
+      steps.push(...lines);
+    }
+
+    const softwareLower = software.toLowerCase();
+    const analysisResults = {
+      manualSteps: [] as any[],
+      automationOpportunities: [] as any[],
+      humanDecisionPoints: [] as any[],
+      apiCalls: [] as any[],
+      totalStepsAnalyzed: steps.length,
+      automationPotential: 0
+    };
+
+    let automatedSteps = 0;
+
+    steps.forEach((step, index) => {
+      const stepText = step.trim();
+      const stepLower = stepText.toLowerCase();
+      
+      // Analyze each step for automation potential
+      const stepAnalysis = {
+        stepNumber: index + 1,
+        originalStep: stepText,
+        canAutomate: false,
+        automationMethod: '',
+        apiEndpoint: '',
+        humanRequired: false,
+        reasoning: '',
+        alternativeAction: ''
+      };
+
+      // Check for navigation steps (usually automatable)
+      if (stepLower.includes('go to') || stepLower.includes('navigate') || stepLower.includes('click') || stepLower.includes('scroll')) {
+        stepAnalysis.canAutomate = true;
+        stepAnalysis.automationMethod = 'Direct API call bypasses UI navigation';
+        stepAnalysis.reasoning = 'UI navigation can be replaced with direct API access';
+        stepAnalysis.alternativeAction = 'API call directly accesses the data/function';
+        automatedSteps++;
+      }
+
+      // Check for data entry steps
+      if (stepLower.includes('add') || stepLower.includes('create') || stepLower.includes('enter') || stepLower.includes('fill')) {
+        stepAnalysis.canAutomate = true;
+        stepAnalysis.automationMethod = 'Automated data creation via API';
+        
+        if (softwareLower.includes('gohighlevel') || softwareLower.includes('go high level')) {
+          stepAnalysis.apiEndpoint = 'POST https://rest.gohighlevel.com/v1/opportunities/';
+          stepAnalysis.alternativeAction = 'API creates opportunity with all required fields automatically';
+        } else if (softwareLower.includes('salesforce')) {
+          stepAnalysis.apiEndpoint = 'POST https://yourinstance.salesforce.com/services/data/v58.0/sobjects/Opportunity/';
+          stepAnalysis.alternativeAction = 'API creates opportunity record with all data in one call';
+        } else if (softwareLower.includes('hubspot')) {
+          stepAnalysis.apiEndpoint = 'POST https://api.hubapi.com/crm/v3/objects/deals';
+          stepAnalysis.alternativeAction = 'API creates deal with all properties set automatically';
+        } else {
+          stepAnalysis.apiEndpoint = `${software} API endpoint for data creation`;
+          stepAnalysis.alternativeAction = 'API creates record with all required data';
+        }
+        
+        stepAnalysis.reasoning = 'Data entry is perfect for automation - APIs can create records instantly';
+        automatedSteps++;
+      }
+
+      // Check for editing/updating steps
+      if (stepLower.includes('edit') || stepLower.includes('update') || stepLower.includes('change') || stepLower.includes('modify')) {
+        stepAnalysis.canAutomate = true;
+        stepAnalysis.automationMethod = 'Automated data updates via API';
+        
+        if (softwareLower.includes('gohighlevel') || softwareLower.includes('go high level')) {
+          stepAnalysis.apiEndpoint = 'PUT https://rest.gohighlevel.com/v1/opportunities/{id}';
+          stepAnalysis.alternativeAction = 'API updates opportunity fields automatically';
+        } else if (softwareLower.includes('salesforce')) {
+          stepAnalysis.apiEndpoint = 'PATCH https://yourinstance.salesforce.com/services/data/v58.0/sobjects/Opportunity/{id}';
+          stepAnalysis.alternativeAction = 'API updates opportunity record instantly';
+        } else if (softwareLower.includes('hubspot')) {
+          stepAnalysis.apiEndpoint = 'PATCH https://api.hubapi.com/crm/v3/objects/deals/{dealId}';
+          stepAnalysis.alternativeAction = 'API updates deal properties automatically';
+        } else {
+          stepAnalysis.apiEndpoint = `${software} API endpoint for data updates`;
+          stepAnalysis.alternativeAction = 'API updates record with new values';
+        }
+        
+        stepAnalysis.reasoning = 'Data updates are ideal for automation - APIs can modify records instantly';
+        automatedSteps++;
+      }
+
+      // Check for conditional logic (requires human decision or smart automation)
+      if (stepLower.includes('if') || stepLower.includes('check') || stepLower.includes('verify') || stepLower.includes('review')) {
+        if (stepLower.includes('busy day') || stepLower.includes('capacity') || stepLower.includes('availability')) {
+          stepAnalysis.canAutomate = true;
+          stepAnalysis.automationMethod = 'Smart automation with business rules';
+          stepAnalysis.reasoning = 'Capacity checks can be automated using calendar/booking APIs';
+          stepAnalysis.alternativeAction = 'API checks availability and applies business rules automatically';
+          automatedSteps++;
+        } else if (stepLower.includes('already') || stepLower.includes('exists') || stepLower.includes('duplicate')) {
+          stepAnalysis.canAutomate = true;
+          stepAnalysis.automationMethod = 'Automated duplicate detection';
+          stepAnalysis.reasoning = 'APIs can search for existing records before creating new ones';
+          stepAnalysis.alternativeAction = 'API searches for existing records and handles accordingly';
+          automatedSteps++;
+        } else {
+          stepAnalysis.humanRequired = true;
+          stepAnalysis.reasoning = 'Complex decision-making may require human judgment';
+          stepAnalysis.alternativeAction = 'Set up approval workflow or business rules';
+        }
+      }
+
+      // Check for lookup/search steps
+      if (stepLower.includes('find') || stepLower.includes('search') || stepLower.includes('look') || stepLower.includes('locate')) {
+        stepAnalysis.canAutomate = true;
+        stepAnalysis.automationMethod = 'Automated search via API';
+        stepAnalysis.reasoning = 'Search operations are perfect for API automation';
+        stepAnalysis.alternativeAction = 'API searches and retrieves data automatically';
+        automatedSteps++;
+      }
+
+      analysisResults.manualSteps.push(stepAnalysis);
+
+      if (stepAnalysis.canAutomate) {
+        analysisResults.automationOpportunities.push(stepAnalysis);
+        if (stepAnalysis.apiEndpoint) {
+          analysisResults.apiCalls.push({
+            step: stepAnalysis.stepNumber,
+            endpoint: stepAnalysis.apiEndpoint,
+            method: stepAnalysis.apiEndpoint.includes('PUT') || stepAnalysis.apiEndpoint.includes('PATCH') ? 'UPDATE' : 'CREATE',
+            purpose: stepAnalysis.alternativeAction
+          });
+        }
+      }
+
+      if (stepAnalysis.humanRequired) {
+        analysisResults.humanDecisionPoints.push(stepAnalysis);
+      }
+    });
+
+    analysisResults.automationPotential = Math.round((automatedSteps / steps.length) * 100);
+
+    return analysisResults;
+  };
+
   const generateAISuggestion = async (name: string, description: string, software: string, painPoints: string, timeSpent: string, alternatives: string): Promise<any> => {
     const timePerWeek = parseTimeSpent(timeSpent);
     const annualHours = timePerWeek * 52;
     const savings = Math.round(annualHours * 0.7);
     const monthlySavings = Math.round(timePerWeek * 4 * 0.7);
+
+    // NEW: Analyze manual steps from description
+    const stepAnalysis = analyzeManualSteps(description, software);
 
     // AI searches for real API information
     const realApiData = await searchForRealAPIData(software, name, description);
@@ -1378,24 +1556,29 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       taskName: `Automate: ${name}`,
       description: `AI-powered automation to eliminate manual ${name.toLowerCase()} process`,
       userFriendlyExplanation, // New field for plain English explanation
+      stepByStepAnalysis: stepAnalysis, // NEW: Detailed step analysis
       currentProcess: {
         software: software,
         timePerWeek: timePerWeek,
         painPoints: painPoints,
-        alternativeUse: alternatives
+        alternativeUse: alternatives,
+        manualSteps: stepAnalysis.manualSteps.map(s => s.originalStep) // Include original steps
       },
       automation: {
         type: getAutomationType(software),
         apiConnections: realApiData.apis,
         aiCapabilities: getAICapabilities(software, painPoints),
         integrations: realIntegrations.tools,
-        researchSources: realApiData.sources
+        researchSources: realApiData.sources,
+        automationPotential: `${stepAnalysis.automationPotential}%`, // NEW: Show automation percentage
+        apiCallsRequired: stepAnalysis.apiCalls // NEW: Specific API calls needed
       },
       impact: {
         annualHoursSaved: savings,
         monthlyHoursSaved: monthlySavings,
         valuePerYear: savings * 25, // £25/hour
-        efficiencyGain: '70%'
+        efficiencyGain: '70%',
+        stepsAutomated: `${stepAnalysis.automationOpportunities.length} of ${stepAnalysis.totalStepsAnalyzed} steps` // NEW
       },
       implementation: {
         setupTime: realImplementation.estimatedTime,
@@ -1403,7 +1586,8 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
         steps: realImplementation.steps,
         demoData: realApiData.demoData,
         tutorials: realImplementation.tutorials,
-        codeExamples: realImplementation.codeExamples
+        codeExamples: realImplementation.codeExamples,
+        humanDecisionPoints: stepAnalysis.humanDecisionPoints // NEW: What still needs human input
       },
       nextActions: realImplementation.nextActions,
       aiResearch: {
@@ -3567,14 +3751,28 @@ def create_ghl_opportunity(email_content, api_key):
 
     return (
       <div className="max-w-4xl mx-auto p-6">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900">
-            Automation Analysis Complete
-          </h1>
-          <p className="text-gray-600">
-            Here's your automation plan for "<strong>{taskName}</strong>"
-          </p>
+        {/* Header with Back Button */}
+        <div className="flex items-center mb-6">
+          <button
+            onClick={() => {
+              setStep('input');
+              setTaskName('');
+              setTaskDescription('');
+              setFinalTask(null);
+              setRelatedTaskSuggestions([]);
+            }}
+            className="mr-4 text-gray-600 hover:text-gray-800 flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            ← Back to Analyser
+          </button>
+          <div className="flex-1 text-center">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900">
+              Automation Analysis Complete
+            </h1>
+            <p className="text-gray-600">
+              Here's your automation plan for "<strong>{taskName}</strong>"
+            </p>
+          </div>
         </div>
 
         {/* Key Results */}
@@ -3592,8 +3790,16 @@ def create_ghl_opportunity(email_content, api_key):
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl mb-2">🚀</div>
-              <div className="font-semibold text-purple-900">{automationPlan.impact.efficiencyGain}</div>
-              <div className="text-sm text-purple-700">efficiency gain</div>
+              <div className="font-semibold text-purple-900">
+                {automationPlan.stepByStepAnalysis?.automationPotential ? 
+                  `${automationPlan.stepByStepAnalysis.automationPotential}%` : 
+                  automationPlan.impact.efficiencyGain}
+              </div>
+              <div className="text-sm text-purple-700">
+                {automationPlan.stepByStepAnalysis?.stepsAutomated ? 
+                  automationPlan.stepByStepAnalysis.stepsAutomated : 
+                  'efficiency gain'}
+              </div>
             </div>
           </div>
           
@@ -3637,6 +3843,135 @@ def create_ghl_opportunity(email_content, api_key):
               What you'll need:
             </h3>
             <p className="text-gray-700 text-sm">{explanation?.whatYouNeed || automationPlan.userFriendlyExplanation?.whatYouNeed}</p>
+          </div>
+        )}
+
+        {/* Step-by-Step Analysis - NEW SECTION */}
+        {automationPlan.stepByStepAnalysis && automationPlan.stepByStepAnalysis.manualSteps.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+            <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <span>🔍</span>
+              Your Manual Steps Analysis
+            </h3>
+            
+            {/* Automation Potential Summary */}
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 mb-4 border border-green-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium text-gray-900">Automation Potential:</span>
+                <span className="text-2xl font-bold text-green-600">{automationPlan.stepByStepAnalysis.automationPotential}%</span>
+              </div>
+              <div className="text-sm text-gray-700">
+                <strong>{automationPlan.stepByStepAnalysis.automationOpportunities.length} of {automationPlan.stepByStepAnalysis.totalStepsAnalyzed} steps</strong> can be fully automated
+              </div>
+            </div>
+
+            {/* Individual Step Analysis */}
+            <div className="space-y-3">
+              {automationPlan.stepByStepAnalysis.manualSteps.map((step, index) => (
+                <div key={index} className={`border rounded-lg p-4 ${
+                  step.canAutomate ? 'border-green-200 bg-green-50' : 
+                  step.humanRequired ? 'border-yellow-200 bg-yellow-50' : 
+                  'border-gray-200 bg-gray-50'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                      step.canAutomate ? 'bg-green-600 text-white' : 
+                      step.humanRequired ? 'bg-yellow-600 text-white' : 
+                      'bg-gray-600 text-white'
+                    }`}>
+                      {step.stepNumber}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900 mb-2">
+                        {step.originalStep}
+                      </div>
+                      
+                      {step.canAutomate && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-green-600 text-sm">✅ Can be automated:</span>
+                            <span className="text-sm text-gray-700">{step.automationMethod}</span>
+                          </div>
+                          
+                          {step.apiEndpoint && (
+                            <div className="bg-white rounded p-2 border border-green-200">
+                              <div className="text-xs text-gray-600 mb-1">API Endpoint:</div>
+                              <div className="font-mono text-xs text-blue-600 break-all">{step.apiEndpoint}</div>
+                            </div>
+                          )}
+                          
+                          <div className="text-sm text-gray-600">
+                            <strong>Instead of manual work:</strong> {step.alternativeAction}
+                          </div>
+                          
+                          <div className="text-xs text-gray-500 italic">
+                            {step.reasoning}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {step.humanRequired && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-yellow-600 text-sm">⚠️ Needs human input:</span>
+                            <span className="text-sm text-gray-700">{step.reasoning}</span>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <strong>Suggested approach:</strong> {step.alternativeAction}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!step.canAutomate && !step.humanRequired && (
+                        <div className="text-sm text-gray-600">
+                          This step may require further analysis for automation potential.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* API Calls Summary */}
+            {automationPlan.stepByStepAnalysis.apiCalls.length > 0 && (
+              <div className="mt-4 bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <h4 className="font-medium text-blue-900 mb-3">🔗 Required API Calls:</h4>
+                <div className="space-y-2">
+                  {automationPlan.stepByStepAnalysis.apiCalls.map((apiCall, index) => (
+                    <div key={index} className="bg-white rounded p-3 border border-blue-200">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
+                          {apiCall.method}
+                        </span>
+                        <span className="text-sm text-gray-600">Step {apiCall.step}</span>
+                      </div>
+                      <div className="font-mono text-xs text-blue-600 mb-1 break-all">{apiCall.endpoint}</div>
+                      <div className="text-xs text-gray-600">{apiCall.purpose}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Human Decision Points */}
+            {automationPlan.stepByStepAnalysis.humanDecisionPoints.length > 0 && (
+              <div className="mt-4 bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                <h4 className="font-medium text-yellow-900 mb-3">👤 Human Decision Points:</h4>
+                <div className="space-y-2">
+                  {automationPlan.stepByStepAnalysis.humanDecisionPoints.map((decision, index) => (
+                    <div key={index} className="bg-white rounded p-3 border border-yellow-200">
+                      <div className="text-sm font-medium text-gray-900 mb-1">
+                        Step {decision.stepNumber}: {decision.originalStep}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {decision.reasoning} - {decision.alternativeAction}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -3987,22 +4322,7 @@ def create_ghl_opportunity(email_content, api_key):
           </div>
         )}
 
-        {/* Simple Footer Actions */}
-        <div className="text-center">
-          <button
-            onClick={() => {
-              setStep('input');
-              setTaskName('');
-              setTaskDescription('');
-              setFinalTask(null);
-              setRelatedTaskSuggestions([]);
-            }}
-            className="text-blue-600 hover:text-blue-700 font-medium flex items-center justify-center gap-2 mx-auto"
-          >
-            <span>▶</span>
-            Analyze Another Task
-          </button>
-        </div>
+
 
         {/* Workflow Creator Modal */}
         {showWorkflowCreator && (
