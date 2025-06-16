@@ -93,6 +93,24 @@ export function CAIOHomePage({ onStartAnalysis, onNavigate }: CAIOHomePageProps)
               </span>
             </h1>
             
+            {/* YOUR CAIO Explanation */}
+            <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-xl p-6 mb-8 max-w-4xl mx-auto">
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-slate-700 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">AI</span>
+                </div>
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-gray-900">YOUR CAIO</h2>
+                  <p className="text-sm text-gray-600 font-medium">Your Chief AI Officer</p>
+                </div>
+              </div>
+              <p className="text-lg text-gray-700 text-center leading-relaxed">
+                Think of us as your dedicated Chief AI Officer - we research, design, and build custom AI solutions 
+                for your business. These free tools showcase our capabilities, and when you're ready, 
+                we can create something specifically for your needs.
+              </p>
+            </div>
+            
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
               We build professional AI solutions and make them freely available to help businesses understand 
               what's possible. When you're ready for custom solutions, we can build them for you or provide 
