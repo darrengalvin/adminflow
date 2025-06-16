@@ -1,0 +1,28 @@
+Respond to enquiry	3 attempts within 48 hours	2	CRM
+Create deal (offer made)	Once you have the details of date, activity and number of people	3	CRM
+Edit the opportunity name	update the stage to offer made and add an opportunity value	1	CRM
+Add in the opportunity name	stage of the opportunity as offer made and the value	1	CRM
+Create programme	Once you have the details of date, activity and number of people	2	Pandadoc
+Panda Doc Signed	When email comes in complete following tasks	1	Info@ inbox
+Put on Fareharbor	When corporate confirms	2	Fareharbor
+Add the corporate name	organisers name and number of people in the private headline	1	Fareharbor
+Create 50% deposit invoice	When corporate confirms	2	Xero
+Create final balance invoice (amend the dates)	When corporate confirms	2	Xero
+Book in with catering	When corporate confirms	1	Gmail
+Info needed - group name	date of event and number of people	1	CRM
+Manifest details	When corporate confirms	1	Fareharbor
+Additional Logistics	When corporate confirms	2	Fareharbor / Google Calendar
+Hotels	accommodation partners or other hosting venues	1	CRM
+Transport (minibus) or other providers	taxi's etc. Add these to minibus calendar if required and inform operations	2	Google Calendar
+Update CRM	When corporate confirms	1	CRM
+Has 50% deposit invoice been paid?	Set for the 50% deposit invoice due date	1	Xero
+Send £100 thank you voucher	Send on signed confirmed	1	Fareharbor
+Send request final details email	Set 3 weeks before event	1	CRM
+Once Response received set final details task to	Set 2 weeks before event	1	CRM
+Has final balance invoice been paid?	Set for the final balance invoice due date	1	Xero
+Send how was your event email	Set after the event	1	CRM
+Send 20% rebooking code	Set after the event	1	CRM
+Buy milk	Set 2 days before event	0.5	Manual
+Get refreshments ready	Set 2 days before event	1	Manual
+Add the refreshments in the boxes	usually 2 packs of biscuits each and 1 can of drink if having lunch	1	Manual
+Get cabin ready - if needed	Set day before event	2	Manual 
