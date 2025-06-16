@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Zap, BarChart3, Clock, ArrowRight, Search, Filter, CheckCircle, Circle, Play, Settings } from 'lucide-react';
+import { Plus, Zap, BarChart3, Clock, ArrowRight, Search, Filter, CheckCircle, Circle, Play, Settings, RefreshCw } from 'lucide-react';
 import { Workflow, Task } from '../types';
 import { WorkflowBuilder } from './WorkflowBuilder';
 import { WorkflowDetails } from './WorkflowDetails';
@@ -27,13 +27,44 @@ export function WorkflowDesigner({ onNavigateToAnalysis, onWorkflowSave, onWorkf
     loadAnalyzedTasksFromStorage();
   }, []);
 
+  // Add listener to reload workflows when window gains focus or becomes visible
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('🔄 Window focused, reloading workflows...');
+      loadWorkflowsFromStorage();
+      loadAnalyzedTasksFromStorage();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 Page became visible, reloading workflows...');
+        loadWorkflowsFromStorage();
+        loadAnalyzedTasksFromStorage();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const loadWorkflowsFromStorage = () => {
     try {
       const savedWorkflows = localStorage.getItem('automationWorkflows');
+      console.log('📦 Loading workflows from localStorage:', savedWorkflows ? 'Found data' : 'No data');
       if (savedWorkflows) {
         const workflowsData = JSON.parse(savedWorkflows);
         const workflowsList = Object.values(workflowsData) as Workflow[];
+        console.log('✅ Loaded workflows:', workflowsList.length, 'workflows found');
+        console.log('📋 Workflow names:', workflowsList.map(w => w.name));
         setWorkflows(workflowsList);
+      } else {
+        console.log('❌ No workflows found in localStorage');
+        setWorkflows([]);
       }
     } catch (error) {
       console.error('Error loading workflows from storage:', error);
@@ -48,8 +79,6 @@ export function WorkflowDesigner({ onNavigateToAnalysis, onWorkflowSave, onWorkf
       console.error('Error loading analyzed tasks from storage:', error);
     }
   };
-
-
 
   const createWorkflowFromTasks = () => {
     if (selectedTasks.length === 0 || !newWorkflowName.trim()) return;
@@ -290,254 +319,340 @@ export function WorkflowDesigner({ onNavigateToAnalysis, onWorkflowSave, onWorkf
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Workflow Designer</h1>
-          <p className="text-slate-400 mt-1">
-            Design automation workflows from your analyzed tasks
-          </p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={() => setShowTaskSelection(true)}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-          >
-            <Zap className="h-4 w-4" />
-            <span>From Tasks</span>
-          </button>
-          <button 
-            onClick={() => setShowBuilder(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Manual Create</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Task Analysis Guidance */}
-      {analyzedTasks.length === 0 && (
-        <div className="bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border border-blue-500/30 rounded-xl p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <BarChart3 className="h-6 w-6 text-blue-400" />
-            <h3 className="text-lg font-semibold text-white">Start with Task Analysis</h3>
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Workflow Designer</h1>
+            <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
+              Design automation workflows from your analyzed tasks
+            </p>
           </div>
-          <p className="text-slate-300 mb-4">
-            To create effective workflows, start by analyzing your repetitive tasks. 
-            Our AI will identify the best automation opportunities and help you build workflows.
-          </p>
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={onNavigateToAnalysis}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <ArrowRight className="h-4 w-4" />
-              <span>Analyze Tasks First</span>
-            </button>
-            <div className="text-slate-400 text-sm">
-              It takes 2-3 minutes to analyze a task
+          {/* Only show header buttons when there are workflows */}
+          {workflows.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <button 
+                onClick={() => {
+                  console.log('🔄 Manual refresh clicked');
+                  console.log('🔍 Debug - All localStorage keys:', Object.keys(localStorage));
+                  console.log('🔍 Debug - automationWorkflows key:', localStorage.getItem('automationWorkflows'));
+                  console.log('🔍 Debug - All localStorage data:');
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    console.log(`  ${key}:`, localStorage.getItem(key));
+                  }
+                  loadWorkflowsFromStorage();
+                  loadAnalyzedTasksFromStorage();
+                }}
+                className="px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium"
+                style={{ 
+                  background: 'var(--bg-secondary)', 
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-primary)'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--color-accent-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
+                title="Refresh workflows from storage"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+              <button 
+                onClick={() => setShowTaskSelection(true)}
+                className="px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium"
+                style={{ 
+                  background: 'var(--color-accent-primary)', 
+                  color: 'white',
+                  border: '1px solid var(--color-accent-primary)'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              >
+                <Zap className="h-4 w-4" />
+                <span>From Tasks</span>
+              </button>
+              <button 
+                onClick={() => setShowBuilder(true)}
+                className="px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium"
+                style={{ 
+                  background: 'var(--color-accent-secondary)', 
+                  color: 'white',
+                  border: '1px solid var(--color-accent-secondary)'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              >
+                <Plus className="h-4 w-4" />
+                <span>Manual Create</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Available Tasks Summary - Only show if there are tasks */}
+        {availableTasks.length > 0 && (
+          <div className="card p-6 mb-8" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+              <div>
+                <h3 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>Ready for Workflow Creation</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  {availableTasks.length} analyzed task{availableTasks.length !== 1 ? 's' : ''} available
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowTaskSelection(true)}
+                className="px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium"
+                style={{ 
+                  background: 'var(--color-accent-primary)', 
+                  color: 'white',
+                  border: '1px solid var(--color-accent-primary)'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              >
+                <Zap className="h-4 w-4" />
+                <span>Create Workflow</span>
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {availableTasks.slice(0, 6).map(task => (
+                <div key={task.id} className="card p-4" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-secondary)' }}>
+                  <h4 className="font-medium text-sm truncate mb-2" style={{ color: 'var(--text-primary)' }}>{task.name}</h4>
+                  <p className="text-xs mb-3 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{task.description}</p>
+                  <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <Clock className="h-3 w-3" />
+                    <span>{task.timeSpent}</span>
+                  </div>
+                </div>
+              ))}
+              {availableTasks.length > 6 && (
+                <div className="card p-4 flex items-center justify-center" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-secondary)', opacity: '0.7' }}>
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    +{availableTasks.length - 6} more
+                  </span>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Available Tasks Summary */}
-      {availableTasks.length > 0 && (
-        <div className="bg-slate-800/50 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-white font-semibold">Ready for Workflow Creation</h3>
-              <p className="text-slate-400 text-sm">
-                {availableTasks.length} analyzed task{availableTasks.length !== 1 ? 's' : ''} available
-              </p>
+        {/* Search and Filters */}
+        {workflows.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
+              <input
+                type="text"
+                placeholder="Search workflows..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-lg transition-all duration-200"
+                style={{ 
+                  background: 'var(--bg-secondary)', 
+                  border: '1px solid var(--border-primary)',
+                  color: 'var(--text-primary)'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-accent-primary)'}
+                onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
+              />
             </div>
-            <button 
-              onClick={() => setShowTaskSelection(true)}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <Zap className="h-4 w-4" />
-              <span>Create Workflow</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <Filter className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-3 rounded-lg transition-all duration-200"
+                style={{ 
+                  background: 'var(--bg-secondary)', 
+                  border: '1px solid var(--border-primary)',
+                  color: 'var(--text-primary)'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-accent-primary)'}
+                onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
+              >
+                <option value="all">All Status</option>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="failed">Failed</option>
+                <option value="paused">Paused</option>
+              </select>
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {availableTasks.slice(0, 6).map(task => (
-              <div key={task.id} className="bg-slate-700/50 rounded-lg p-3">
-                <h4 className="text-white text-sm font-medium truncate">{task.name}</h4>
-                <p className="text-slate-400 text-xs mt-1 line-clamp-2">{task.description}</p>
-                <div className="flex items-center space-x-2 mt-2 text-xs text-slate-500">
-                  <Clock className="h-3 w-3" />
-                  <span>{task.timeSpent}</span>
+        )}
+
+        {/* Workflows Grid */}
+        {workflows.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredWorkflows.map((workflow) => (
+              <div
+                key={workflow.id}
+                className="card p-6 cursor-pointer transition-all duration-200 group hover:shadow-lg"
+                style={{ 
+                  background: 'var(--bg-secondary)', 
+                  border: '1px solid var(--border-primary)'
+                }}
+                onClick={() => setSelectedWorkflow(workflow.id)}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--color-accent-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="font-semibold mb-2 transition-colors" style={{ color: 'var(--text-primary)' }}>
+                      {workflow.name}
+                    </h3>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(workflow.status)}`}>
+                      {workflow.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onWorkflowExecute?.(workflow.id);
+                      }}
+                      className="p-2 rounded-lg transition-all duration-200"
+                      style={{ color: 'var(--text-tertiary)' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = 'var(--status-success)';
+                        e.currentTarget.style.background = 'var(--status-success-bg)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = 'var(--text-tertiary)';
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <Play className="h-4 w-4" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Add edit functionality
+                      }}
+                      className="p-2 rounded-lg transition-all duration-200"
+                      style={{ color: 'var(--text-tertiary)' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = 'var(--color-accent-primary)';
+                        e.currentTarget.style.background = 'var(--color-accent-primary-bg)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = 'var(--text-tertiary)';
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <Settings className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-sm mb-4 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                  {workflow.description}
+                </p>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: 'var(--text-tertiary)' }}>Steps:</span>
+                    <span style={{ color: 'var(--text-primary)' }}>{workflow.steps.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: 'var(--text-tertiary)' }}>Progress:</span>
+                    <span style={{ color: 'var(--text-primary)' }}>{workflow.progress}%</span>
+                  </div>
+                  <div className="w-full rounded-full h-2" style={{ background: 'var(--bg-tertiary)' }}>
+                    <div 
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${workflow.progress}%`,
+                        background: `linear-gradient(to right, var(--color-accent-primary), var(--color-accent-secondary))`
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid var(--border-secondary)' }}>
+                  <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    Created {new Date(workflow.createdAt).toLocaleDateString()}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {workflow.tags.slice(0, 2).map(tag => (
+                      <span key={tag} className="px-2 py-1 text-xs rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                        {tag}
+                      </span>
+                    ))}
+                    {workflow.tags.length > 2 && (
+                      <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        +{workflow.tags.length - 2}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
-            {availableTasks.length > 6 && (
-              <div className="bg-slate-700/30 rounded-lg p-3 flex items-center justify-center">
-                <span className="text-slate-400 text-sm">
-                  +{availableTasks.length - 6} more
-                </span>
-              </div>
-            )}
           </div>
-        </div>
-      )}
-
-      {/* Search and Filters */}
-      {workflows.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search workflows..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-slate-400" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-slate-800/50 border border-slate-600/50 rounded-lg text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            >
-              <option value="all">All Status</option>
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
-              <option value="paused">Paused</option>
-            </select>
-          </div>
-        </div>
-      )}
-
-      {/* Workflows Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredWorkflows.map((workflow) => (
-          <div
-            key={workflow.id}
-            className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 hover:bg-slate-800/70 transition-all duration-200 group cursor-pointer"
-            onClick={() => setSelectedWorkflow(workflow.id)}
+        ) : (
+          /* Clean Empty State - CSS Grid Centered */
+          <div 
+            style={{ 
+              display: 'grid',
+              placeItems: 'center',
+              minHeight: '70vh',
+              width: '100%',
+              gridTemplateColumns: '1fr',
+              gridTemplateRows: '1fr'
+            }}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="text-white font-semibold mb-2 group-hover:text-blue-400 transition-colors">
-                  {workflow.name}
-                </h3>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(workflow.status)}`}>
-                  {workflow.status}
-                </span>
+            <div 
+              style={{
+                textAlign: 'center',
+                maxWidth: '32rem',
+                width: '100%',
+                padding: '0 2rem'
+              }}
+            >
+              <div className="mb-12">
+                <div className="flex justify-center mb-8" style={{ display: 'flex', justifyContent: 'center' }}>
+                  <Zap className="h-24 w-24" style={{ color: 'var(--text-tertiary)', opacity: '0.3' }} />
+                </div>
+                <h3 className="text-3xl font-bold mb-6" style={{ color: 'var(--text-primary)', textAlign: 'center' }}>No Workflows Yet</h3>
+                <p className="text-lg leading-relaxed mb-6" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+                  Create your first automation workflow to get started with streamlining your business processes
+                </p>
+                <p className="text-base leading-relaxed" style={{ color: 'var(--text-tertiary)', textAlign: 'center' }}>
+                  Start by analyzing your tasks, then save them to workflows for automation.
+                </p>
               </div>
-              <div className="flex items-center space-x-2">
+              
+              <div className="flex justify-center" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                 <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onWorkflowExecute?.(workflow.id);
+                  onClick={onNavigateToAnalysis}
+                  className="px-10 py-4 rounded-lg flex items-center justify-center gap-3 transition-all duration-200 font-semibold text-lg"
+                  style={{ 
+                    background: 'var(--color-accent-primary)', 
+                    color: 'white',
+                    border: '1px solid var(--color-accent-primary)',
+                    minWidth: '200px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
-                  className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-colors"
-                >
-                  <Play className="h-4 w-4" />
-                </button>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Add edit functionality
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
                   }}
-                  className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors"
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
-                  <Settings className="h-4 w-4" />
+                  <BarChart3 className="h-5 w-5" />
+                  <span>Analyze Tasks</span>
                 </button>
-              </div>
-            </div>
-
-            <p className="text-slate-400 text-sm mb-4 line-clamp-2">
-              {workflow.description}
-            </p>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">Steps:</span>
-                <span className="text-slate-300">{workflow.steps.length}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">Progress:</span>
-                <span className="text-slate-300">{workflow.progress}%</span>
-              </div>
-              <div className="w-full bg-slate-700/50 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${workflow.progress}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-700/50">
-              <div className="text-xs text-slate-500">
-                Created {new Date(workflow.createdAt).toLocaleDateString()}
-              </div>
-              <div className="flex items-center space-x-1">
-                {workflow.tags.slice(0, 2).map(tag => (
-                  <span key={tag} className="px-2 py-1 bg-slate-700/50 text-slate-400 text-xs rounded">
-                    {tag}
-                  </span>
-                ))}
-                {workflow.tags.length > 2 && (
-                  <span className="text-slate-500 text-xs">
-                    +{workflow.tags.length - 2}
-                  </span>
-                )}
               </div>
             </div>
           </div>
-        ))}
+        )}
       </div>
-
-      {workflows.length === 0 && analyzedTasks.length > 0 && (
-        <div className="text-center py-12">
-          <Zap className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-          <h3 className="text-white font-semibold mb-2">Ready to Create Your First Workflow</h3>
-          <p className="text-slate-400 mb-6">
-            You have {availableTasks.length} analyzed task{availableTasks.length !== 1 ? 's' : ''} ready to be automated
-          </p>
-          <button 
-            onClick={() => setShowTaskSelection(true)}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 mx-auto transition-colors"
-          >
-            <Zap className="h-4 w-4" />
-            <span>Create Your First Workflow</span>
-          </button>
-        </div>
-      )}
-
-      {workflows.length === 0 && analyzedTasks.length === 0 && (
-        <div className="text-center py-12">
-          <BarChart3 className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-          <h3 className="text-white font-semibold mb-2">No Workflows Yet</h3>
-          <p className="text-slate-400 mb-6">
-            Start by analyzing your tasks or create a workflow manually
-          </p>
-          <div className="flex items-center justify-center space-x-4">
-            <button 
-              onClick={onNavigateToAnalysis}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <BarChart3 className="h-4 w-4" />
-              <span>Analyze Tasks</span>
-            </button>
-            <button 
-              onClick={() => setShowBuilder(true)}
-              className="bg-slate-600 hover:bg-slate-500 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Manual Create</span>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

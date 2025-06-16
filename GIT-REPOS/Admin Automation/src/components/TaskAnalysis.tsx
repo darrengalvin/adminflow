@@ -3,6 +3,7 @@ import { Task } from '../types';
 import { generateTaskAnalysisPDF } from '../utils/pdfGenerator';
 import { taskStorage } from '../utils/taskStorage';
 import SupportPage from './SupportPage';
+import claudeApi from '../services/claudeApi';
 
 interface TaskAnalysisProps {
   onBack: () => void;
@@ -36,8 +37,34 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
   const [selectedIndustry, setSelectedIndustry] = useState('');
   const [showPremiumGate, setShowPremiumGate] = useState(false);
   const [showEmployeeResources, setShowEmployeeResources] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [apiConfigured, setApiConfigured] = useState<boolean | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [analysisStep, setAnalysisStep] = useState('');
 
-  // Load existing workflows on component mount
+  // Helper function to safely render any data that might be an object
+  const safeRender = (data: any): string => {
+    if (typeof data === 'string') {
+      return data;
+    }
+    if (typeof data === 'number' || typeof data === 'boolean') {
+      return String(data);
+    }
+    if (data === null || data === undefined) {
+      return 'N/A';
+    }
+    if (typeof data === 'object') {
+      try {
+        return JSON.stringify(data, null, 2);
+      } catch (error) {
+        return 'Complex data structure';
+      }
+    }
+    return String(data);
+  };
+
+  // Load existing workflows and check API status on component mount
   useEffect(() => {
     const loadExistingWorkflows = () => {
       const savedWorkflows = localStorage.getItem('automationWorkflows');
@@ -53,7 +80,17 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       }
     };
     
+    const checkApiStatus = async () => {
+      try {
+        const configured = await claudeApi.isConfigured();
+        setApiConfigured(configured);
+      } catch (error) {
+        setApiConfigured(false);
+      }
+    };
+    
     loadExistingWorkflows();
+    checkApiStatus();
   }, []);
 
   const handleSupportPageContinue = () => {
@@ -309,19 +346,26 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
 
   const handleAddToWorkflow = async (workflowName: string) => {
     try {
+      console.log('🚀 handleAddToWorkflow called with workflowName:', workflowName);
+      
       if (!finalTask?.aiSuggestion) {
+        console.log('❌ No finalTask or aiSuggestion available');
         alert('❌ No task analysis available. Please analyze a task first.');
         return;
       }
 
       const automationPlan = finalTask.aiSuggestion;
+      console.log('📋 Automation plan:', automationPlan.taskName);
       
       // Generate AI suggestions for next steps
       const nextStepSuggestions = await generateNextStepSuggestions(finalTask);
       
       // Get existing workflows from localStorage
       const savedWorkflows = localStorage.getItem('automationWorkflows');
+      console.log('📦 Current localStorage automationWorkflows:', savedWorkflows ? 'Found data' : 'No data');
+      console.log('📦 Raw localStorage data:', savedWorkflows);
       let workflows = savedWorkflows ? JSON.parse(savedWorkflows) : {};
+      console.log('📋 Parsed workflows object:', workflows);
       
       // Create workflow step from the analyzed task with enhanced timing and conditions
       const workflowStep = {
@@ -393,7 +437,14 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
       }
       
       // Save back to localStorage
+      console.log('💾 Saving workflows to localStorage:', workflows);
+      console.log('💾 Number of workflows to save:', Object.keys(workflows).length);
       localStorage.setItem('automationWorkflows', JSON.stringify(workflows));
+      console.log('✅ Successfully saved to localStorage');
+      
+      // Verify the save worked
+      const verification = localStorage.getItem('automationWorkflows');
+      console.log('🔍 Verification - localStorage now contains:', verification ? 'Data found' : 'No data');
       
       // Show success message with next step suggestions
       const suggestionText = nextStepSuggestions.length > 0 ? 
@@ -545,16 +596,131 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
   };
 
   const generateDirectAnalysis = async () => {
-    // Show loading state
-    setChatMessages([
-      { type: 'ai', message: '🔍 AI is researching real API documentation and implementation guides...' },
-      { type: 'ai', message: '📚 Searching for the latest tutorials and code examples...' },
-      { type: 'ai', message: '🤖 Analyzing best practices and integration options...' }
-    ]);
-    setStep('chat');
-
+    setIsAnalyzing(true);
+    setApiError(null);
+    setAnalysisProgress(0);
+    setAnalysisStep('Initializing analysis...');
+    
     try {
-      // Generate analysis with what we have
+      // Check if Claude API is configured
+      if (apiConfigured === false) {
+        setApiError('Claude API not configured');
+        setAnalysisStep('Using demo mode...');
+        
+        // Fallback to simulated analysis with progress
+        const progressSteps = [
+          { step: 'Analyzing task requirements...', progress: 20 },
+          { step: 'Identifying software integrations...', progress: 40 },
+          { step: 'Calculating time savings...', progress: 60 },
+          { step: 'Generating recommendations...', progress: 80 },
+          { step: 'Finalizing analysis...', progress: 100 }
+        ];
+
+        for (const { step, progress } of progressSteps) {
+          setAnalysisStep(step);
+          setAnalysisProgress(progress);
+          await new Promise(resolve => setTimeout(resolve, 400));
+        }
+
+        const finalSoftware = software.trim() || extractSoftwareFromDescription(taskDescription) || 'Unknown software';
+        const painPoints = 'Manual, repetitive process';
+        const finalTimeSpent = timeSpent.trim() || '2';
+        const alternatives = 'More strategic work';
+
+        const softwareUsed = parseSoftware(finalSoftware);
+        const aiSuggestion = await generateAISuggestion(taskName, taskDescription, finalSoftware, painPoints, finalTimeSpent, alternatives);
+
+        const task: Task = {
+          id: Date.now().toString(),
+          name: taskName,
+          description: taskDescription,
+          category: 'Administrative',
+          frequency: 'Weekly',
+          timeSpent: parseTimeSpent(finalTimeSpent),
+          impact: 'Medium',
+          priority: 'Medium',
+          softwareUsed,
+          painPoints,
+          alternativeActivities: alternatives,
+          aiSuggestion,
+          apiOpportunities: getAPIOpportunities(softwareUsed)
+        };
+
+        setFinalTask(task);
+        setStep('results');
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // Real Claude API analysis with progress tracking
+      setAnalysisStep('Preparing task data for Claude AI...');
+      setAnalysisProgress(10);
+      
+      const finalSoftware = software.trim() || extractSoftwareFromDescription(taskDescription) || 'Unknown software';
+      const finalTimeSpent = timeSpent.trim() || '2';
+
+      setAnalysisStep('Sending to YOUR CAIO - ai...');
+      setAnalysisProgress(25);
+
+      const analysis = await claudeApi.analyzeTask({
+        taskName,
+        description: taskDescription,
+        software: finalSoftware,
+        timeSpent: finalTimeSpent,
+        painPoints: 'Manual, repetitive process',
+        alternatives: 'More strategic work'
+      });
+
+      setAnalysisStep('Processing Claude AI response...');
+      setAnalysisProgress(75);
+
+      const softwareUsed = parseSoftware(finalSoftware);
+      const task: Task = {
+        id: Date.now().toString(),
+        name: taskName,
+        description: taskDescription,
+        category: 'Administrative',
+        frequency: 'Weekly',
+        timeSpent: parseTimeSpent(finalTimeSpent),
+        impact: 'Medium',
+        priority: 'Medium',
+        softwareUsed,
+        painPoints: 'Manual, repetitive process',
+        alternativeActivities: 'More strategic work',
+        aiSuggestion: analysis,
+        apiOpportunities: getAPIOpportunities(softwareUsed)
+      };
+
+      setAnalysisStep('Analysis complete!');
+      setAnalysisProgress(100);
+      
+      // Brief pause to show completion
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      setFinalTask(task);
+      setStep('results');
+      setIsAnalyzing(false);
+
+    } catch (error) {
+      console.error('Claude API analysis failed:', error);
+      setApiError(error instanceof Error ? error.message : 'AI analysis failed');
+      setAnalysisStep('Error occurred, switching to demo mode...');
+      
+      // Fallback to simulated analysis with progress
+      const progressSteps = [
+        { step: 'Analyzing task requirements...', progress: 20 },
+        { step: 'Identifying software integrations...', progress: 40 },
+        { step: 'Calculating time savings...', progress: 60 },
+        { step: 'Generating recommendations...', progress: 80 },
+        { step: 'Finalizing analysis...', progress: 100 }
+      ];
+
+      for (const { step, progress } of progressSteps) {
+        setAnalysisStep(step);
+        setAnalysisProgress(progress);
+        await new Promise(resolve => setTimeout(resolve, 400));
+      }
+
       const finalSoftware = software.trim() || extractSoftwareFromDescription(taskDescription) || 'Unknown software';
       const painPoints = 'Manual, repetitive process';
       const finalTimeSpent = timeSpent.trim() || '2';
@@ -581,12 +747,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
 
       setFinalTask(task);
       setStep('results');
-    } catch (error) {
-      setChatMessages(prev => [...prev, { 
-        type: 'ai', 
-        message: 'Sorry, I encountered an issue while researching. Let me provide you with a basic analysis instead.' 
-      }]);
-      // Fallback to basic analysis
+      setIsAnalyzing(false);
     }
   };
 
@@ -731,97 +892,166 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
   };
 
   const generateFinalAnalysis = async (messages: Array<{type: 'ai' | 'user', message: string}>) => {
-    // Show AI research in progress with more detail
-    setChatMessages(prev => [...prev, { 
-      type: 'ai', 
-      message: '🔍 AI is now researching real implementation details for your specific use case...' 
-    }]);
+    setIsAnalyzing(true);
+    setApiError(null);
+    setAnalysisProgress(0);
+    setAnalysisStep('Processing your conversation...');
+    
+    const userAnswers = messages.filter(m => m.type === 'user').map(m => m.message);
+    
+    // Use pre-filled data or answers from chat
+    const finalSoftware = software.trim() || userAnswers[0] || '';
+    const painPoints = userAnswers[software.trim() ? 0 : 1] || '';
+    const finalTimeSpent = timeSpent.trim() || userAnswers[software.trim() ? 1 : 2] || '';
+    const alternatives = userAnswers[userAnswers.length - 1] || '';
 
-    // Add research progress updates
-    setTimeout(() => {
+         try {
+       // Check if Claude API is configured
+       if (apiConfigured === false) {
+         setApiError('Claude API not configured');
+         setChatMessages(prev => [...prev, { 
+           type: 'ai', 
+           message: '🔄 Using fallback analysis (Claude API not configured)...' 
+         }]);
+        
+        // Fallback to simulated analysis
+        setTimeout(async () => {
+          const softwareUsed = parseSoftware(finalSoftware);
+          const aiSuggestion = await generateAISuggestion(taskName, taskDescription, finalSoftware, painPoints, finalTimeSpent, alternatives);
+
+          const task: Task = {
+            id: Date.now().toString(),
+            name: taskName,
+            description: taskDescription,
+            category: 'Administrative',
+            frequency: 'Weekly',
+            timeSpent: parseTimeSpent(finalTimeSpent),
+            impact: 'Medium',
+            priority: 'Medium',
+            softwareUsed,
+            painPoints,
+            alternativeActivities: alternatives,
+            aiSuggestion,
+            apiOpportunities: getAPIOpportunities(softwareUsed)
+          };
+
+          taskStorage.saveTask({
+            name: taskName,
+            description: taskDescription,
+            software: finalSoftware,
+            timeSpent: finalTimeSpent,
+            aiSuggestion,
+            category: 'Administrative',
+            annualSavings: aiSuggestion.impact?.valuePerYear || 0,
+            weeklyHours: parseTimeSpent(finalTimeSpent)
+          });
+
+          setFinalTask(task);
+          setStep('results');
+          setIsAnalyzing(false);
+        }, 2000);
+        return;
+      }
+
+      // Real Claude API analysis
       setChatMessages(prev => [...prev, { 
         type: 'ai', 
-        message: '📚 Analyzing API documentation and integration options...' 
+        message: '🤖 Claude AI is analyzing your conversation...' 
       }]);
-    }, 1000);
 
-    setTimeout(() => {
+      const analysis = await claudeApi.analyzeTask({
+        taskName,
+        description: taskDescription,
+        software: finalSoftware,
+        timeSpent: finalTimeSpent,
+        painPoints,
+        alternatives
+      });
+
       setChatMessages(prev => [...prev, { 
         type: 'ai', 
-        message: '🔧 Finding specific endpoints and authentication methods...' 
+        message: '✅ Claude analysis complete! Preparing your comprehensive automation plan...' 
       }]);
-    }, 2000);
 
-    setTimeout(() => {
-      setChatMessages(prev => [...prev, { 
-        type: 'ai', 
-        message: '💡 Generating implementation recommendations and code examples...' 
-      }]);
-    }, 3000);
-
-    try {
-      const userAnswers = messages.filter(m => m.type === 'user').map(m => m.message);
-      
-      // Use pre-filled data or answers from chat
-      const finalSoftware = software.trim() || userAnswers[0] || '';
-      const painPoints = userAnswers[software.trim() ? 0 : 1] || '';
-      const finalTimeSpent = timeSpent.trim() || userAnswers[software.trim() ? 1 : 2] || '';
-      const alternatives = userAnswers[userAnswers.length - 1] || '';
-
-      // Parse software
       const softwareUsed = parseSoftware(finalSoftware);
-      
-      // Generate AI suggestion with real research
-      const aiSuggestion = await generateAISuggestion(taskName, taskDescription, finalSoftware, painPoints, finalTimeSpent, alternatives);
-
-      // Add final success message
-      setTimeout(() => {
-        setChatMessages(prev => [...prev, { 
-          type: 'ai', 
-          message: '✅ Research complete! Found real API endpoints and implementation details. Here\'s your comprehensive automation plan!' 
-        }]);
-      }, 4000);
-
       const task: Task = {
         id: Date.now().toString(),
         name: taskName,
         description: taskDescription,
         category: 'Administrative',
-        frequency: 'Weekly', // Default
+        frequency: 'Weekly',
         timeSpent: parseTimeSpent(finalTimeSpent),
         impact: 'Medium',
         priority: 'Medium',
         softwareUsed,
         painPoints,
         alternativeActivities: alternatives,
-        aiSuggestion,
+        aiSuggestion: analysis,
         apiOpportunities: getAPIOpportunities(softwareUsed)
       };
 
       // Save analyzed task to local storage
-      const analyzedTask = taskStorage.saveTask({
+      taskStorage.saveTask({
         name: taskName,
         description: taskDescription,
         software: finalSoftware,
         timeSpent: finalTimeSpent,
-        aiSuggestion,
+        aiSuggestion: analysis,
         category: 'Administrative',
-        annualSavings: aiSuggestion.impact?.valuePerYear || 0,
+        annualSavings: analysis.impact?.valuePerYear || 0,
         weeklyHours: parseTimeSpent(finalTimeSpent)
       });
 
-      // Delay showing results to allow research messages to display
       setTimeout(() => {
         setFinalTask(task);
         setStep('results');
-      }, 4500);
+        setIsAnalyzing(false);
+      }, 1000);
 
     } catch (error) {
+      console.error('Claude API analysis failed:', error);
+      setApiError(error instanceof Error ? error.message : 'AI analysis failed');
       setChatMessages(prev => [...prev, { 
         type: 'ai', 
-        message: 'Research complete! Here\'s your automation plan based on the latest information.' 
+        message: '⚠️ AI analysis failed. Using fallback analysis...' 
       }]);
-      // Continue with fallback
+      
+      // Fallback to simulated analysis
+      setTimeout(async () => {
+        const softwareUsed = parseSoftware(finalSoftware);
+        const aiSuggestion = await generateAISuggestion(taskName, taskDescription, finalSoftware, painPoints, finalTimeSpent, alternatives);
+
+        const task: Task = {
+          id: Date.now().toString(),
+          name: taskName,
+          description: taskDescription,
+          category: 'Administrative',
+          frequency: 'Weekly',
+          timeSpent: parseTimeSpent(finalTimeSpent),
+          impact: 'Medium',
+          priority: 'Medium',
+          softwareUsed,
+          painPoints,
+          alternativeActivities: alternatives,
+          aiSuggestion,
+          apiOpportunities: getAPIOpportunities(softwareUsed)
+        };
+
+        taskStorage.saveTask({
+          name: taskName,
+          description: taskDescription,
+          software: finalSoftware,
+          timeSpent: finalTimeSpent,
+          aiSuggestion,
+          category: 'Administrative',
+          annualSavings: aiSuggestion.impact?.valuePerYear || 0,
+          weeklyHours: parseTimeSpent(finalTimeSpent)
+        });
+
+        setFinalTask(task);
+        setStep('results');
+        setIsAnalyzing(false);
+      }, 2000);
     }
   };
 
@@ -2302,7 +2532,7 @@ def create_ghl_opportunity(email_content, api_key):
                     </div>
                     <div className="bg-green-50 p-3 rounded-lg text-center">
                       <div className="text-lg font-bold text-green-600">
-                        £{task.aiSuggestion.impact.valuePerYear.toLocaleString()}
+                        £{task.aiSuggestion.impact.valuePerYear.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
                       </div>
                       <div className="text-xs text-green-700">value/year</div>
                     </div>
@@ -2403,6 +2633,189 @@ def create_ghl_opportunity(email_content, api_key):
     );
   }
 
+  // Loading State - Show when analyzing
+  if (isAnalyzing) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <button
+              onClick={onBack}
+              className="inline-flex items-center gap-2 mb-6 px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+              style={{ 
+                color: 'var(--text-secondary)', 
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-primary)'
+              }}
+            >
+              ← Back
+            </button>
+            
+            <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+              AI Analysis in Progress
+            </h1>
+            <p className="text-lg" style={{ color: 'var(--text-secondary)' }}>
+              Claude AI is analyzing "{taskName}"
+            </p>
+          </div>
+
+          {/* Main Analysis Card */}
+          <div className="card p-8 mb-6">
+            {/* AI Avatar and Status */}
+            <div className="flex items-center justify-center mb-8">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl" 
+                   style={{ background: 'var(--status-info-bg)', border: '2px solid var(--status-info-border)' }}>
+                🤖
+              </div>
+            </div>
+
+            {/* Progress Section */}
+            <div className="text-center mb-8">
+              <div className="mb-4">
+                <div className="w-full rounded-full h-3 mb-2" style={{ background: 'var(--bg-tertiary)' }}>
+                  <div 
+                    className="h-3 rounded-full transition-all duration-500 ease-out"
+                    style={{ 
+                      background: `linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary))`,
+                      width: `${analysisProgress}%` 
+                    }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <span>Processing...</span>
+                  <span>{analysisProgress}%</span>
+                </div>
+              </div>
+
+              <p className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                {analysisStep || 'Initializing AI analysis...'}
+              </p>
+            </div>
+
+            {/* Analysis Steps */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              {[
+                { step: 20, icon: '🔍', text: 'Analyzing task requirements' },
+                { step: 40, icon: '🔗', text: 'Identifying software integrations' },
+                { step: 60, icon: '⏱️', text: 'Calculating time savings' },
+                { step: 80, icon: '💡', text: 'Generating recommendations' },
+                { step: 100, icon: '✨', text: 'Finalizing analysis' }
+              ].map((item, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 rounded-lg" 
+                     style={{ 
+                       background: analysisProgress >= item.step ? 'var(--status-success-bg)' : 'var(--bg-secondary)',
+                       border: `1px solid ${analysisProgress >= item.step ? 'var(--status-success-border)' : 'var(--border-primary)'}`
+                     }}>
+                  <span className="text-lg">
+                    {analysisProgress >= item.step ? '✅' : item.icon}
+                  </span>
+                  <span className="text-sm font-medium" 
+                        style={{ color: analysisProgress >= item.step ? 'var(--status-success)' : 'var(--text-secondary)' }}>
+                    {item.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Current Task Info */}
+            <div className="border-t pt-6" style={{ borderColor: 'var(--border-primary)' }}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                  <div className="text-2xl mb-2">📋</div>
+                  <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Task</div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{taskName}</div>
+                </div>
+                <div className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                  <div className="text-2xl mb-2">🔧</div>
+                  <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Software</div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{software || 'Analyzing...'}</div>
+                </div>
+                <div className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                  <div className="text-2xl mb-2">⏰</div>
+                  <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Time Spent</div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{timeSpent || 'Calculating...'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Capabilities Info */}
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+              🧠 AI Analysis Capabilities
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" 
+                     style={{ background: 'var(--status-info-bg)', color: 'var(--status-info)' }}>
+                  🔍
+                </div>
+                <div>
+                  <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                    Deep Task Analysis
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    Understanding workflow patterns and pain points
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" 
+                     style={{ background: 'var(--status-success-bg)', color: 'var(--status-success)' }}>
+                  🔗
+                </div>
+                <div>
+                  <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                    API Integration Research
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    Finding the best automation opportunities
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" 
+                     style={{ background: 'var(--status-warning-bg)', color: 'var(--status-warning)' }}>
+                  💰
+                </div>
+                <div>
+                  <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                    ROI Calculation
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    Calculating time savings and value creation
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" 
+                     style={{ background: 'var(--status-info-bg)', color: 'var(--status-info)' }}>
+                  📋
+                </div>
+                <div>
+                  <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                    Implementation Planning
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    Creating step-by-step automation roadmap
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center mt-8">
+            <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
+              Powered by Claude AI • Real-time analysis in progress
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Industry Selection Modal
   if (showInspireMe) {
     return (
@@ -2462,14 +2875,34 @@ def create_ghl_opportunity(email_content, api_key):
   if (step === 'input') {
     return (
       <div className="max-w-6xl mx-auto content-area">
-        <div className="flex items-center mb-6">
-          <button 
-            onClick={onBack} 
-            className="mr-4 text-gray-600 hover:text-gray-800 touch-target p-2 rounded-lg hover:bg-gray-100"
-          >
-            ← Back
-          </button>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">Workflow Designer & Implementation Guide</h1>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <button 
+              onClick={onBack} 
+              className="mr-4 text-gray-600 hover:text-gray-800 touch-target p-2 rounded-lg hover:bg-gray-100"
+            >
+              ← Back
+            </button>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">Workflow Designer & Implementation Guide</h1>
+          </div>
+          <div className="hidden sm:flex items-center gap-2">
+            {apiConfigured === null ? (
+              <div className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                Checking...
+              </div>
+            ) : apiConfigured ? (
+              <div className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                Claude AI Ready
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                Demo Mode
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Hero Section - Main CTA */}
@@ -2515,14 +2948,18 @@ def create_ghl_opportunity(email_content, api_key):
           </div>
 
           {/* Main Form Card */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="card overflow-hidden">
+            {/* Animated top border */}
+            <div className="h-1 animate-pulse" style={{ background: `linear-gradient(to right, var(--color-accent-primary), var(--color-accent-secondary), var(--color-accent-warning))` }}></div>
+            
             <div className="p-6 sm:p-8">
               <div className="grid lg:grid-cols-3 gap-8">
                 {/* Left Column - Form */}
                 <div className="lg:col-span-2 space-y-6">
                   <div className="grid sm:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <span>🎯</span>
                         What do you call this task? *
                       </label>
                       <input
@@ -2530,12 +2967,13 @@ def create_ghl_opportunity(email_content, api_key):
                         value={taskName}
                         onChange={(e) => setTaskName(e.target.value)}
                         placeholder="e.g., Create deal when offer is made"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        className="input-field w-full px-4 py-4 rounded-xl"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <span>⏰</span>
                         Time per week (optional)
                       </label>
                       <input
@@ -2543,13 +2981,14 @@ def create_ghl_opportunity(email_content, api_key):
                         value={timeSpent}
                         onChange={(e) => setTimeSpent(e.target.value)}
                         placeholder="e.g., 2 hours"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        className="input-field w-full px-4 py-4 rounded-xl"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                      <span>📝</span>
                       What exactly do you do? *
                     </label>
                     <textarea
@@ -2557,12 +2996,13 @@ def create_ghl_opportunity(email_content, api_key):
                       onChange={(e) => setTaskDescription(e.target.value)}
                       placeholder="e.g., When someone accepts an offer, I go into the CRM and create a new deal with their info, then send a welcome email"
                       rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                      className="input-field w-full px-4 py-4 rounded-xl resize-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                      <span>🛠️</span>
                       Software/tools used (optional)
                     </label>
                     <input
@@ -2570,19 +3010,19 @@ def create_ghl_opportunity(email_content, api_key):
                       value={software}
                       onChange={(e) => setSoftware(e.target.value)}
                       placeholder="e.g., Salesforce, Gmail, Excel"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="input-field w-full px-4 py-4 rounded-xl"
                     />
                   </div>
 
-                  {/* Action Buttons - Less Intrusive */}
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-4 pt-6">
                     <button
                       onClick={startChat}
                       disabled={!taskName.trim() || !taskDescription.trim()}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="button-primary flex-1 py-4 px-8 rounded-xl font-bold transition-all transform hover:scale-105 disabled:hover:scale-100 flex items-center justify-center gap-3"
                     >
-                      <span>🚀</span>
-                      Analyze This Task
+                      <span className="text-xl">🚀</span>
+                      <span className="text-lg">Launch AI Analysis</span>
                     </button>
                     
                     {(taskName.trim() || taskDescription.trim() || software.trim() || timeSpent.trim()) && (
@@ -2593,81 +3033,94 @@ def create_ghl_opportunity(email_content, api_key):
                           setSoftware('');
                           setTimeSpent('');
                         }}
-                        className="px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-300"
+                        className="button-secondary px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2"
                       >
-                        <span>🗑️</span>
-                        Clear
+                        <span className="text-lg">🗑️</span>
+                        <span className="font-medium">Clear</span>
                       </button>
                     )}
                   </div>
                   
-                  {/* Subtle helper text */}
+                  {/* Helper text */}
                   {(!taskName.trim() || !taskDescription.trim()) && (
-                    <p className="text-sm text-gray-500">
-                      Fill in the task name and description to get started
-                    </p>
+                    <div className="rounded-lg p-3 border" style={{ 
+                      background: 'var(--status-info-bg)', 
+                      borderColor: 'var(--status-info-border)' 
+                    }}>
+                      <p className="text-sm flex items-center gap-2" style={{ color: 'var(--status-info)' }}>
+                        <span>⚡</span>
+                        Fill in the task name and description to activate AI analysis
+                      </p>
+                    </div>
                   )}
                   
-                  {/* Less intrusive inspire button */}
-                  <div className="pt-4 border-t border-gray-100">
+                  {/* Inspire button */}
+                  <div className="pt-6 border-t" style={{ borderColor: 'var(--border-primary)' }}>
                     <button
                       onClick={handleInspireMe}
                       type="button"
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-2 mx-auto transition-colors"
+                      className="text-sm font-bold flex items-center gap-2 mx-auto transition-all hover:scale-105"
+                      style={{ color: 'var(--text-accent)' }}
                     >
-                      <span>✨</span>
-                      Need inspiration? See examples
+                      <span className="text-lg">✨</span>
+                      <span>Need inspiration? Browse AI examples</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Right Column - Tips */}
-                <div className="space-y-4">
-                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-4">
-                    <h3 className="font-semibold text-emerald-900 mb-3 flex items-center gap-2">
-                      <span>💡</span>
-                      Pro Tips
+                <div className="space-y-6">
+                  <div className="rounded-2xl p-6 border" style={{ 
+                    background: 'var(--status-success-bg)', 
+                    borderColor: 'var(--status-success-border)' 
+                  }}>
+                    <h3 className="font-bold mb-4 flex items-center gap-3 text-lg" style={{ color: 'var(--status-success)' }}>
+                      <span className="text-2xl">🧠</span>
+                      AI Optimization Tips
                     </h3>
-                    <ul className="text-sm text-emerald-800 space-y-2">
-                      <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 mt-0.5">•</span>
+                    <ul className="text-sm space-y-3" style={{ color: 'var(--status-success)' }}>
+                      <li className="flex items-start gap-3">
+                        <span className="mt-1 text-lg" style={{ color: 'var(--status-success)' }}>▶</span>
                         <span>Be specific about the steps you take</span>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 mt-0.5">•</span>
+                      <li className="flex items-start gap-3">
+                        <span className="mt-1 text-lg" style={{ color: 'var(--status-success)' }}>▶</span>
                         <span>Mention what triggers you to do this task</span>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 mt-0.5">•</span>
+                      <li className="flex items-start gap-3">
+                        <span className="mt-1 text-lg" style={{ color: 'var(--status-success)' }}>▶</span>
                         <span>Include any copy-paste between systems</span>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 mt-0.5">•</span>
-                        <span>The more detail, the better the plan!</span>
+                      <li className="flex items-start gap-3">
+                        <span className="mt-1 text-lg" style={{ color: 'var(--status-success)' }}>▶</span>
+                        <span>The more detail, the better the AI plan!</span>
                       </li>
                     </ul>
                   </div>
 
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
-                    <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                      <span>🎯</span>
-                      Best Candidates
+                  <div className="rounded-2xl p-6 border" style={{ 
+                    background: 'var(--status-info-bg)', 
+                    borderColor: 'var(--status-info-border)' 
+                  }}>
+                    <h3 className="font-bold mb-4 flex items-center gap-3 text-lg" style={{ color: 'var(--status-info)' }}>
+                      <span className="text-2xl">🎯</span>
+                      Perfect Automation Targets
                     </h3>
-                    <ul className="text-sm text-blue-800 space-y-2">
-                      <li className="flex items-start gap-2">
-                        <span className="text-blue-600 mt-0.5">•</span>
+                    <ul className="text-sm space-y-3" style={{ color: 'var(--status-info)' }}>
+                      <li className="flex items-start gap-3">
+                        <span className="mt-1 text-lg" style={{ color: 'var(--status-info)' }}>◆</span>
                         <span>Done the same way every time</span>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-blue-600 mt-0.5">•</span>
+                      <li className="flex items-start gap-3">
+                        <span className="mt-1 text-lg" style={{ color: 'var(--status-info)' }}>◆</span>
                         <span>Takes 15+ minutes each time</span>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-blue-600 mt-0.5">•</span>
+                      <li className="flex items-start gap-3">
+                        <span className="mt-1 text-lg" style={{ color: 'var(--status-info)' }}>◆</span>
                         <span>Involves multiple systems</span>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-blue-600 mt-0.5">•</span>
+                      <li className="flex items-start gap-3">
+                        <span className="mt-1 text-lg" style={{ color: 'var(--status-info)' }}>◆</span>
                         <span>Happens weekly or more</span>
                       </li>
                     </ul>
@@ -2675,14 +3128,15 @@ def create_ghl_opportunity(email_content, api_key):
                 </div>
               </div>
 
-              {/* Import Option - More Subtle */}
-              <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+              {/* Import Option */}
+              <div className="mt-8 pt-6 border-t text-center" style={{ borderColor: 'var(--border-primary)' }}>
                 <button
                   onClick={() => setShowImport(!showImport)}
-                  className="text-gray-600 hover:text-gray-800 text-sm font-medium flex items-center gap-2 mx-auto transition-colors"
+                  className="text-sm font-bold flex items-center gap-3 mx-auto transition-all hover:scale-105"
+                  style={{ color: 'var(--text-accent)' }}
                 >
-                  <span>📋</span>
-                  Have multiple tasks? Import from spreadsheet
+                  <span className="text-lg">📋</span>
+                  <span>Batch Process Multiple Tasks? Import from spreadsheet</span>
                 </button>
               </div>
             </div>
@@ -2924,405 +3378,219 @@ def create_ghl_opportunity(email_content, api_key):
     );
   }
 
-  if (step === 'chat') {
-    return (
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="flex items-center mb-6">
-          <button onClick={() => setStep('input')} className="mr-4 text-gray-600 hover:text-gray-800">
-            ← Back
-          </button>
-          <h1 className="text-xl font-bold text-gray-800">Quick questions about "{taskName}"</h1>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-            {chatMessages.map((msg, index) => (
-              <div key={index} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  msg.type === 'user' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {msg.message}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={currentInput}
-              onChange={(e) => setCurrentInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Type your answer..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!currentInput.trim()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-300"
-            >
-              Send
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (step === 'results' && finalTask) {
     const automationPlan = finalTask.aiSuggestion;
     const explanation = automationPlan.userFriendlyExplanation;
+    
+    // Debug: Log the actual structure we received from Claude (remove in production)
+    // console.log('🔍 Final Task Structure:', finalTask);
+    // console.log('🔍 Automation Plan Structure:', automationPlan);
+    // console.log('🔍 User Friendly Explanation:', explanation);
 
     return (
-      <div className="max-w-5xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-gray-900">
-            Your Custom Workflow Design
+        <div className="text-center mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900">
+            Automation Analysis Complete
           </h1>
-          <p className="text-lg text-gray-600">
-            Complete automation blueprint for "<strong>{taskName}</strong>"
+          <p className="text-gray-600">
+            Here's your automation plan for "<strong>{taskName}</strong>"
           </p>
         </div>
 
-        {/* AI Response Chat Bubble */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8 mb-8">
-          <div className="flex items-start gap-4">
-            {/* AI Avatar */}
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-xl">🤖</span>
-              </div>
+        {/* Key Results */}
+        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+          <div className="grid sm:grid-cols-3 gap-4 mb-6">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl mb-2">⏰</div>
+              <div className="font-semibold text-blue-900">{automationPlan.impact.monthlyHoursSaved}h</div>
+              <div className="text-sm text-blue-700">saved monthly</div>
             </div>
-            
-            {/* AI Response */}
-            <div className="flex-1">
-              <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="font-semibold text-emerald-900">Your CAIO AI</span>
-                  <span className="bg-emerald-200 text-emerald-800 text-xs px-2 py-1 rounded-full">Analysis Complete</span>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">🎯</span>
-                    <div>
-                      <h3 className="font-semibold text-emerald-900 mb-2">Workflow Design Complete!</h3>
-                      <p className="text-emerald-800">
-                        I've designed a complete automation workflow for "{taskName}". You now have a detailed blueprint with implementation options to choose from.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid sm:grid-cols-3 gap-4 mt-6">
-                    <div className="bg-white rounded-lg p-4 text-center border border-emerald-200">
-                      <div className="text-2xl mb-2">⏰</div>
-                      <div className="font-semibold text-emerald-900">{automationPlan.impact.monthlyHoursSaved}h</div>
-                      <div className="text-sm text-emerald-700">saved monthly</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 text-center border border-emerald-200">
-                      <div className="text-2xl mb-2">💰</div>
-                      <div className="font-semibold text-emerald-900">£{automationPlan.impact.valuePerYear.toLocaleString()}</div>
-                      <div className="text-sm text-emerald-700">value per year</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 text-center border border-emerald-200">
-                      <div className="text-2xl mb-2">🚀</div>
-                      <div className="font-semibold text-emerald-900">100%</div>
-                      <div className="text-sm text-emerald-700">automated</div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded-lg p-4 border border-emerald-200 mt-4">
-                    <h4 className="font-medium text-emerald-900 mb-2">Workflow Overview:</h4>
-                    <p className="text-emerald-800 text-sm">
-                      {explanation?.summary || `This workflow connects your ${finalTask.softwareUsed?.[0] || 'software'} systems to handle the task automatically. When triggered, it executes all steps without manual intervention.`}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl mb-2">💰</div>
+              <div className="font-semibold text-green-900">£{automationPlan.impact.valuePerYear.toLocaleString('en-GB', { maximumFractionDigits: 0, style: 'decimal' })}</div>
+              <div className="text-sm text-green-700">value per year</div>
             </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-2xl mb-2">🚀</div>
+              <div className="font-semibold text-purple-900">{automationPlan.impact.efficiencyGain}</div>
+              <div className="text-sm text-purple-700">efficiency gain</div>
+            </div>
+          </div>
+          
+          {/* Good News from Claude */}
+          {(explanation?.goodNews || automationPlan.userFriendlyExplanation?.goodNews) && (
+            <div className="bg-green-50 rounded-lg p-4 mb-4">
+              <h3 className="font-medium text-green-900 mb-2 flex items-center gap-2">
+                <span>🎉</span>
+                Great News:
+              </h3>
+              <p className="text-green-800 text-sm">
+                {explanation?.goodNews || automationPlan.userFriendlyExplanation?.goodNews}
+              </p>
+            </div>
+          )}
+          
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-2">How it works:</h3>
+            <p className="text-gray-700 text-sm">
+              {explanation?.howItWorks || automationPlan.userFriendlyExplanation?.howItWorks || `This automation connects your ${finalTask.softwareUsed?.[0] || 'software'} systems to handle the task automatically. When triggered, it executes all steps without manual intervention.`}
+            </p>
           </div>
         </div>
 
-        {/* Wealth Building Emphasis */}
-        <div className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black rounded-xl p-6 mb-8 border-2 border-yellow-500 shadow-xl">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <span className="text-3xl">💰</span>
-              <span className="text-xl font-bold">START BUILDING WEALTH THROUGH SOFTWARE OWNERSHIP</span>
-              <span className="text-3xl">💰</span>
-            </div>
-            <p className="text-lg font-semibold mb-2">
-              This workflow becomes a <span className="bg-black text-yellow-400 px-2 py-1 rounded">VALUABLE COMPANY ASSET</span> that increases your business value
-            </p>
-            <p className="text-base font-medium">
-              Stop renting automation forever - Own your software, own your future 🚀
-            </p>
+        {/* What is API - Claude's explanation */}
+        {(explanation?.whatIsAPI || automationPlan.userFriendlyExplanation?.whatIsAPI) && (
+          <div className="bg-blue-50 rounded-lg p-6 mb-6">
+            <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
+              <span>🔗</span>
+              What is an API?
+            </h3>
+            <p className="text-blue-800 text-sm">{explanation?.whatIsAPI || automationPlan.userFriendlyExplanation?.whatIsAPI}</p>
           </div>
-        </div>
+        )}
+
+        {/* What You Need */}
+        {(explanation?.whatYouNeed || automationPlan.userFriendlyExplanation?.whatYouNeed) && (
+          <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <span>🔧</span>
+              What you'll need:
+            </h3>
+            <p className="text-gray-700 text-sm">{explanation?.whatYouNeed || automationPlan.userFriendlyExplanation?.whatYouNeed}</p>
+          </div>
+        )}
+
+        {/* Implementation Steps */}
+        {automationPlan.implementation?.steps && (
+          <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <span>📋</span>
+              Implementation steps:
+            </h3>
+            <div className="space-y-2">
+              {automationPlan.implementation.steps.slice(0, 5).map((step, index) => (
+                <div key={index} className="flex items-start gap-3 text-sm">
+                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+                    {index + 1}
+                  </span>
+                  <span className="text-gray-700">{step}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
           <button
             onClick={() => {
               const suggestedName = `${automationPlan.taskName.replace('Automate: ', '')} Workflow`;
               setWorkflowName(suggestedName);
               setShowWorkflowCreator(true);
             }}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg transition-colors flex items-center justify-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
           >
             <span>💾</span>
-            Save Workflow Design
+            Save to Workflow
           </button>
           <button
             onClick={() => generateTaskAnalysisPDF([finalTask])}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg transition-colors flex items-center justify-center gap-2"
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
           >
             <span>📋</span>
-            Get Implementation Guide
+            Download Guide
           </button>
         </div>
 
-        {/* Build Your Own Platform - Primary Recommendation */}
-        <div className="bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-300 rounded-xl p-8 mb-8">
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-semibold mb-4">
-              <span>🏆</span>
-              RECOMMENDED APPROACH
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Build Your Own Automation Platform</h3>
-            <p className="text-lg text-gray-700">
-              <strong>Stop renting automation - start owning valuable software assets</strong>
+        {/* Claude's Next Steps */}
+        {(explanation?.nextSteps || automationPlan.userFriendlyExplanation?.nextSteps) && (
+          <div className="bg-yellow-50 rounded-lg p-6 mb-6">
+            <h3 className="font-medium text-yellow-900 mb-3 flex items-center gap-2">
+              <span>🎯</span>
+              Claude AI Recommendations:
+            </h3>
+            <p className="text-yellow-800 text-sm">
+              {explanation?.nextSteps || automationPlan.userFriendlyExplanation?.nextSteps}
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 mb-6">
-            <div className="bg-white rounded-lg p-6 border border-emerald-200">
-              <h4 className="font-bold text-emerald-900 mb-4 flex items-center gap-2 text-lg">
-                <span>💎</span>
-                Asset Building Strategy
-              </h4>
-              <ul className="space-y-3 text-emerald-800">
-                <li className="flex items-start gap-3">
-                  <span className="text-emerald-600 mt-1">💰</span>
-                  <span><strong>Every £1 invested increases your company valuation</strong> - automation becomes intellectual property</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-emerald-600 mt-1">📈</span>
-                  <span><strong>Compound growth:</strong> Each automation builds on the last, creating an increasingly valuable platform</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-emerald-600 mt-1">🏗️</span>
-                  <span><strong>Upgrade as you grow:</strong> Add features, scale capacity, integrate new systems</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-emerald-600 mt-1">🛡️</span>
-                  <span><strong>Competitive moat:</strong> Custom solutions competitors can't replicate</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="bg-white rounded-lg p-6 border border-emerald-200">
-              <h4 className="font-bold text-emerald-900 mb-4 flex items-center gap-2 text-lg">
-                <span>🚀</span>
-                Implementation Options
-              </h4>
-              <div className="space-y-4">
-                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <div className="font-semibold text-emerald-900 mb-2">🔧 DIY with Our Guide</div>
-                  <div className="text-sm text-emerald-700">Complete step-by-step implementation guide, code examples, API documentation</div>
-                </div>
-                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <div className="font-semibold text-emerald-900 mb-2">👨‍💻 Hire Your Developer</div>
-                  <div className="text-sm text-emerald-700">Share our technical guide with your development team</div>
-                </div>
-                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <div className="font-semibold text-emerald-900 mb-2">🤝 We Build It For You</div>
-                  <div className="text-sm text-emerald-700">Professional implementation with ongoing support and enhancements</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg p-6 border border-emerald-200">
-            <h4 className="font-bold text-center text-emerald-900 mb-4 text-lg">💡 The Math That Matters</h4>
-            <div className="grid sm:grid-cols-3 gap-6 text-center">
-              <div className="p-4 bg-emerald-50 rounded-lg">
-                <div className="text-2xl font-bold text-emerald-900 mb-1">£0/month</div>
-                <div className="text-sm text-emerald-700">Ongoing platform costs after initial build</div>
-              </div>
-              <div className="p-4 bg-emerald-50 rounded-lg">
-                <div className="text-2xl font-bold text-emerald-900 mb-1">100%</div>
-                <div className="text-sm text-emerald-700">Ownership of your automation IP</div>
-              </div>
-              <div className="p-4 bg-emerald-50 rounded-lg">
-                <div className="text-2xl font-bold text-emerald-900 mb-1">∞</div>
-                <div className="text-sm text-emerald-700">Unlimited automations, users, customization</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
-        {/* Alternative Options - Secondary */}
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8">
-          <div className="text-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Alternative Options</h3>
-            <p className="text-sm text-gray-600">
-              If you prefer not to build your own platform, these are your alternatives:
-            </p>
-          </div>
+        {/* What Happens Next - Better Explanation */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6 border border-blue-200">
+          <h3 className="font-medium text-blue-900 mb-4 flex items-center gap-2">
+            <span>🎯</span>
+            What happens next? Here's your roadmap:
+          </h3>
           
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm">🔗</span>
+          <div className="space-y-4">
+            {/* Step 1 */}
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">1</div>
+              <div>
+                <div className="font-medium text-blue-900 mb-1">💾 Save to Workflow Collection</div>
+                <div className="text-sm text-blue-800">
+                  Add this automation to your workflow library so you can track, organize, and build upon it. 
+                  Think of it like saving a recipe - you'll want to reference it later!
                 </div>
-                <h4 className="font-medium text-gray-900">Existing Platforms</h4>
-              </div>
-              <p className="text-sm text-gray-600 mb-3">Zapier, Make.com, n8n, etc.</p>
-              <div className="text-xs text-gray-500 space-y-1">
-                <div>✅ Quick setup</div>
-                <div>❌ Monthly fees forever</div>
-                <div>❌ Limited customization</div>
-                <div>❌ No asset ownership</div>
               </div>
             </div>
-            
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm">🤝</span>
-                </div>
-                <h4 className="font-medium text-gray-900">Professional Services</h4>
-              </div>
-              <p className="text-sm text-gray-600 mb-3">We build your custom platform</p>
-              <div className="text-xs text-gray-500 space-y-1">
-                <div>✅ Expert implementation</div>
-                <div>✅ You own the result</div>
-                <div>✅ Ongoing support available</div>
-                <div>⚠️ Higher upfront investment</div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Software as Wealth Building */}
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-8 mb-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 bg-yellow-600 text-white px-4 py-2 rounded-full text-sm font-semibold mb-4">
-              <span>💎</span>
-              WEALTH BUILDING STRATEGY
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Software is the New Gold in 2025</h3>
-            <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-              <strong>Every automation you build becomes a valuable company asset.</strong> 
-              Stop paying rent to automation platforms - start building wealth through software ownership.
-            </p>
-          </div>
-          
-          <div className="grid lg:grid-cols-3 gap-8 mb-8">
-            <div className="bg-white rounded-lg p-6 border-2 border-yellow-200">
-              <div className="text-center mb-4">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-3xl">🏦</span>
+            {/* Step 2 */}
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">2</div>
+              <div>
+                <div className="font-medium text-green-900 mb-1">📋 Download Implementation Guide</div>
+                <div className="text-sm text-green-800">
+                  Get a detailed PDF with step-by-step instructions, API documentation, and code examples. 
+                  Perfect for sharing with developers or following yourself.
                 </div>
-                <h4 className="font-bold text-yellow-900 text-lg">Asset Appreciation</h4>
               </div>
-              <ul className="text-yellow-800 space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-yellow-600 mt-1 font-bold">£</span>
-                  <span><strong>Every £1 invested = £1 added to company value</strong></span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-yellow-600 mt-1">📊</span>
-                  <span>Automation platforms show up as <strong>assets on your balance sheet</strong></span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-yellow-600 mt-1">🎯</span>
-                  <span>Increases company valuation for <strong>investment or sale</strong></span>
-                </li>
-              </ul>
             </div>
-            
-            <div className="bg-white rounded-lg p-6 border-2 border-yellow-200">
-              <div className="text-center mb-4">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-3xl">🔄</span>
+
+            {/* Step 3 */}
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">3</div>
+              <div>
+                <div className="font-medium text-purple-900 mb-1">🔄 Use Workflow Manager</div>
+                <div className="text-sm text-purple-800">
+                  View all your saved automations in one place, simulate how they work, and see the big picture 
+                  of your business automation strategy.
                 </div>
-                <h4 className="font-bold text-yellow-900 text-lg">Compound Growth</h4>
               </div>
-              <ul className="text-yellow-800 space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-yellow-600 mt-1">🏗️</span>
-                  <span><strong>Each automation builds on the last</strong> - creating an integrated platform</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-yellow-600 mt-1">⚡</span>
-                  <span>Shared infrastructure makes <strong>future automations faster & cheaper</strong></span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-yellow-600 mt-1">🚀</span>
-                  <span>Platform becomes <strong>increasingly valuable</strong> with each addition</span>
-                </li>
-              </ul>
             </div>
-            
-            <div className="bg-white rounded-lg p-6 border-2 border-yellow-200">
-              <div className="text-center mb-4">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-3xl">🛡️</span>
+
+            {/* Step 4 */}
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">4</div>
+              <div>
+                <div className="font-medium text-orange-900 mb-1">🚀 Start Building</div>
+                <div className="text-sm text-orange-800">
+                  Begin with a simple version and improve over time. Most automations start small and grow 
+                  into powerful business tools.
                 </div>
-                <h4 className="font-bold text-yellow-900 text-lg">Competitive Moat</h4>
               </div>
-              <ul className="text-yellow-800 space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-yellow-600 mt-1">🎯</span>
-                  <span><strong>Custom solutions</strong> competitors can't replicate</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-yellow-600 mt-1">🔒</span>
-                  <span><strong>Proprietary workflows</strong> become trade secrets</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-yellow-600 mt-1">⚡</span>
-                  <span><strong>Speed advantage</strong> from optimized processes</span>
-                </li>
-              </ul>
             </div>
           </div>
-          
-          <div className="bg-white rounded-lg p-6 border-2 border-yellow-200">
-            <h4 className="font-bold text-center text-yellow-900 mb-6 text-xl">💰 The Financial Reality</h4>
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="text-center">
-                <h5 className="font-bold text-red-700 mb-4 text-lg">❌ Renting Automation (Zapier, etc.)</h5>
-                <div className="space-y-3 text-red-600">
-                  <div className="text-2xl font-bold">£500+/month</div>
-                  <div className="text-sm">Forever increasing costs</div>
-                  <div className="text-sm">£6,000+ per year</div>
-                  <div className="text-sm">£60,000+ over 10 years</div>
-                  <div className="text-sm font-bold">= £0 asset value</div>
-                </div>
-              </div>
-              <div className="text-center">
-                <h5 className="font-bold text-emerald-700 mb-4 text-lg">✅ Owning Your Platform</h5>
-                <div className="space-y-3 text-emerald-600">
-                  <div className="text-2xl font-bold">£5,000-15,000</div>
-                  <div className="text-sm">One-time development cost</div>
-                  <div className="text-sm">£0/month ongoing</div>
-                  <div className="text-sm">Unlimited scaling</div>
-                  <div className="text-sm font-bold">= £15,000+ asset value</div>
-                </div>
-              </div>
+
+          {/* Why Workflows Matter */}
+          <div className="mt-6 p-4 bg-white rounded-lg border border-blue-200">
+            <div className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+              <span>💡</span>
+              Why save to a workflow?
+            </div>
+            <div className="text-sm text-blue-800 space-y-1">
+              <div>• <strong>Track Progress:</strong> See which automations you've built and which are planned</div>
+              <div>• <strong>Calculate ROI:</strong> Add up time saved and value created across all automations</div>
+              <div>• <strong>Build Sequences:</strong> Connect multiple automations to create powerful workflows</div>
+              <div>• <strong>Share & Collaborate:</strong> Show your team the automation roadmap</div>
             </div>
           </div>
         </div>
 
         {/* Technical Details - Collapsible */}
-        <div className="bg-gray-50 rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
           <button
             onClick={() => setShowDemo(!showDemo)}
             className="w-full flex items-center justify-between text-left"
@@ -3336,6 +3604,15 @@ def create_ghl_opportunity(email_content, api_key):
           
           {showDemo && (
             <div className="mt-6 pt-6 border-t border-gray-200">
+              {/* Intro Text */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-blue-800 text-sm">
+                  <strong>📋 For Non-Technical Users:</strong> If you're not technical, we don't expect you to understand this section. 
+                  This information will be added to your workflow so that your developer or AI assistant has all the information they need. 
+                  It will all make sense shortly when you start implementing your automation.
+                </p>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="bg-white rounded-lg p-4">
                   <h4 className="font-medium text-gray-700 mb-2">Setup Requirements</h4>
@@ -3368,6 +3645,38 @@ def create_ghl_opportunity(email_content, api_key):
                 </div>
               </div>
 
+              {/* Claude's Specific Endpoints */}
+              {(explanation?.endpoints || automationPlan.userFriendlyExplanation?.endpoints) && (
+                <div className="mb-4">
+                  <div className="font-medium text-gray-700 mb-2">Workflow Step API Requirements:</div>
+                  <div className="space-y-3">
+                    {(explanation?.endpoints || automationPlan.userFriendlyExplanation?.endpoints || []).map((endpoint, index) => (
+                      <div key={index} className="bg-white rounded p-4 border border-gray-200">
+                        <div className="font-medium text-sm text-gray-800 mb-2">{safeRender(endpoint.name)}</div>
+                        <div className="text-xs text-blue-600 font-mono mb-2 bg-gray-50 p-2 rounded">{safeRender(endpoint.endpoint)}</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                          <div className="text-gray-600">
+                            <strong>Purpose:</strong> {safeRender(endpoint.purpose)}
+                          </div>
+                          <div className="text-gray-600">
+                            <strong>Auth:</strong> {safeRender(endpoint.authentication) || 'API Key'}
+                          </div>
+                          <div className="text-gray-600">
+                            <strong>Input:</strong> {safeRender(endpoint.inputData) || 'See documentation'}
+                          </div>
+                          <div className="text-gray-600">
+                            <strong>Output:</strong> {safeRender(endpoint.outputData) || 'See documentation'}
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600 mt-2">
+                          <strong>Implementation:</strong> {safeRender(endpoint.whatItDoes)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Real API Endpoints */}
               {automationPlan.automation.apiConnections && automationPlan.automation.apiConnections.length > 0 && (
                 <div className="mb-4">
@@ -3375,11 +3684,11 @@ def create_ghl_opportunity(email_content, api_key):
                   <div className="space-y-2">
                     {automationPlan.automation.apiConnections.map((api, index) => (
                       <div key={index} className="bg-white rounded p-2 border border-gray-200">
-                        <div className="font-medium text-xs text-gray-800 mb-1">{api.name}</div>
-                        <div className="text-xs text-blue-600 font-mono mb-1">{api.endpoint}</div>
+                        <div className="font-medium text-xs text-gray-800 mb-1">{safeRender(api.name)}</div>
+                        <div className="text-xs text-blue-600 font-mono mb-1">{safeRender(api.endpoint)}</div>
                         <div className="text-xs text-gray-600">
-                          <span className="font-medium">Method:</span> {api.method || 'POST'} | 
-                          <span className="font-medium"> Auth:</span> {api.authentication || 'API Key'}
+                          <span className="font-medium">Method:</span> {safeRender(api.method) || 'POST'} | 
+                          <span className="font-medium"> Auth:</span> {safeRender(api.authentication) || 'API Key'}
                         </div>
                         {api.docs && (
                           <a href={api.docs} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline">
@@ -3388,6 +3697,43 @@ def create_ghl_opportunity(email_content, api_key):
                         )}
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Code Requirements from Claude */}
+              {automationPlan.implementation?.codeRequirements && (
+                <div className="mb-4">
+                  <div className="font-medium text-gray-700 mb-2">Technical Implementation Requirements:</div>
+                  <div className="space-y-3">
+                    {automationPlan.implementation.codeRequirements.inputSchema && (
+                      <div className="bg-blue-50 rounded p-3">
+                        <div className="font-medium text-xs text-blue-800 mb-1">Input Schema:</div>
+                        <div className="text-xs text-blue-700 font-mono">{safeRender(automationPlan.implementation.codeRequirements.inputSchema)}</div>
+                      </div>
+                    )}
+                    {automationPlan.implementation.codeRequirements.outputSchema && (
+                      <div className="bg-green-50 rounded p-3">
+                        <div className="font-medium text-xs text-green-800 mb-1">Output Schema:</div>
+                        <div className="text-xs text-green-700 font-mono">{safeRender(automationPlan.implementation.codeRequirements.outputSchema)}</div>
+                      </div>
+                    )}
+                    {automationPlan.implementation.codeRequirements.errorHandling && (
+                      <div className="bg-yellow-50 rounded p-3">
+                        <div className="font-medium text-xs text-yellow-800 mb-1">Error Handling:</div>
+                        <div className="text-xs text-yellow-700">{safeRender(automationPlan.implementation.codeRequirements.errorHandling)}</div>
+                      </div>
+                    )}
+                    {automationPlan.implementation.codeRequirements.dependencies && (
+                      <div className="bg-purple-50 rounded p-3">
+                        <div className="font-medium text-xs text-purple-800 mb-1">Dependencies:</div>
+                        <div className="text-xs text-purple-700">
+                          {Array.isArray(automationPlan.implementation.codeRequirements.dependencies) 
+                            ? automationPlan.implementation.codeRequirements.dependencies.join(', ')
+                            : safeRender(automationPlan.implementation.codeRequirements.dependencies)}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -3413,7 +3759,21 @@ def create_ghl_opportunity(email_content, api_key):
           )}
         </div>
 
-
+        {/* Simple Footer Actions */}
+        <div className="text-center">
+          <button
+            onClick={() => {
+              setStep('input');
+              setTaskName('');
+              setTaskDescription('');
+              setFinalTask(null);
+            }}
+            className="text-blue-600 hover:text-blue-700 font-medium flex items-center justify-center gap-2 mx-auto"
+          >
+            <span>▶</span>
+            Analyze Another Task
+          </button>
+        </div>
 
         {/* Workflow Creator Modal */}
         {showWorkflowCreator && (

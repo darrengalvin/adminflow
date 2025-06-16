@@ -158,14 +158,11 @@ function App() {
         );
       case 'workflows':
         return (
-          <div className="space-y-8">
-            <AutomationMonitor />
-            <WorkflowDesigner 
-              onNavigateToAnalysis={() => setCurrentSection('analyze')}
-              onWorkflowSave={handleWorkflowSave}
-              onWorkflowExecute={handleWorkflowExecute}
-            />
-          </div>
+          <WorkflowDesigner 
+            onNavigateToAnalysis={() => setCurrentSection('analyze')}
+            onWorkflowSave={handleWorkflowSave}
+            onWorkflowExecute={handleWorkflowExecute}
+          />
         );
       case 'integrations':
         return <APIIntegrations integrations={mockAPIIntegrations} />;
