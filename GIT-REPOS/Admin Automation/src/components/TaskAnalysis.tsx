@@ -684,6 +684,92 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
     }
   };
 
+  const handleAIProcessing = async (text: string) => {
+    if (!text.trim()) return;
+    
+    // Let AI process any format of text and extract tasks
+    try {
+      const response = await fetch('http://localhost:3001/api/claude', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: `Please analyze this content and extract individual tasks that could be automated. The content might be from a spreadsheet, notes, lists, or any format. For each task you identify, provide:
+
+1. Task name (clear, actionable)
+2. Description/steps involved
+3. Software/system used (if mentioned)
+4. Time estimate (if mentioned, otherwise estimate)
+
+Content to analyze:
+${text}
+
+Please respond with a JSON array of tasks in this format:
+[
+  {
+    "name": "Task name",
+    "description": "What the task involves",
+    "software": "Software used",
+    "timeSpent": "Time estimate"
+  }
+]
+
+Only return the JSON array, no other text.`
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        try {
+          const tasks = JSON.parse(data.content);
+          if (Array.isArray(tasks) && tasks.length > 0) {
+            // Process the extracted tasks
+            const validTasks = tasks.filter(task => 
+              task.name && 
+              task.name.trim() && 
+              task.name.toUpperCase() !== 'FALSE' && 
+              task.name.toUpperCase() !== 'TRUE'
+            );
+            
+            if (validTasks.length === 1) {
+              // Single task - populate form
+              const task = validTasks[0];
+              setTaskName(task.name);
+              setTaskDescription(task.description || '');
+              setSoftware(task.software || '');
+              setTimeSpent(task.timeSpent || '2 hours per week');
+              setShowImport(false);
+            } else if (validTasks.length > 1) {
+              // Multiple tasks - prepare for batch processing
+              const batchTasks = validTasks.map((task, index) => ({
+                id: `ai_batch_${index}`,
+                name: task.name,
+                description: task.description || '',
+                software: task.software || '',
+                timeSpent: task.timeSpent || '2 hours per week',
+                painPoints: 'Manual, repetitive process',
+                alternatives: 'Currently done manually'
+              }));
+              
+              setBatchTasks(batchTasks);
+              setShowImport(false);
+              setStep('batch');
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing AI response:', parseError);
+          // Fallback to simple text processing
+          handleImportTasks(text);
+        }
+      }
+    } catch (error) {
+      console.error('Error with AI processing:', error);
+      // Fallback to simple text processing
+      handleImportTasks(text);
+    }
+  };
+
   const handleImportTasks = (text: string) => {
     const lines = text.trim().split('\n').filter(line => line.trim());
     if (lines.length === 0) return;
@@ -3530,54 +3616,48 @@ def create_ghl_opportunity(email_content, api_key):
                   style={{ color: 'var(--text-accent)' }}
                 >
                   <span className="text-lg">📋</span>
-                  <span>Batch Process Multiple Tasks? Import from spreadsheet</span>
+                  <span>🤖 AI Task Processor - Paste anything (spreadsheets, notes, lists)</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Import Section */}
+        {/* AI Processing Field */}
         {showImport && (
           <div className="bg-white rounded-xl shadow-lg border p-6 mb-8">
-            <h3 className="font-semibold text-gray-800 mb-4">📊 Import Multiple Tasks</h3>
-            
-            {/* Format Examples */}
-            <div className="mb-4 space-y-3">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <h4 className="font-medium text-blue-900 mb-2">✅ Your Format (with TRUE/FALSE column):</h4>
-                <div className="bg-white rounded p-2 text-xs font-mono text-gray-700 border">
-                  FALSE&nbsp;&nbsp;&nbsp;&nbsp;Respond to enquiry&nbsp;&nbsp;&nbsp;&nbsp;3 attempts within 48 hours&nbsp;&nbsp;&nbsp;&nbsp;CRM&nbsp;&nbsp;&nbsp;&nbsp;1 - Check email inbox<br/>
-                  FALSE&nbsp;&nbsp;&nbsp;&nbsp;Create deal (offer made)&nbsp;&nbsp;&nbsp;&nbsp;Once you have details&nbsp;&nbsp;&nbsp;&nbsp;CRM&nbsp;&nbsp;&nbsp;&nbsp;1 - Go to customers page...
-                </div>
-                <p className="text-xs text-blue-700 mt-1">
-                  <strong>Columns:</strong> TRUE/FALSE | Task Name | Time Frame | System | Detailed Steps
-                </p>
-              </div>
-              
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <h4 className="font-medium text-green-900 mb-2">✅ Standard Format:</h4>
-                <div className="bg-white rounded p-2 text-xs font-mono text-gray-700 border">
-                  Create deal when offer is made&nbsp;&nbsp;&nbsp;&nbsp;Go into CRM and create new deal&nbsp;&nbsp;&nbsp;&nbsp;2 hours&nbsp;&nbsp;&nbsp;&nbsp;Salesforce
-                </div>
-                <p className="text-xs text-green-700 mt-1">
-                  <strong>Columns:</strong> Task Name | Description | Time per week | Software
-                </p>
+            <h3 className="font-semibold text-gray-800 mb-4">🤖 AI Task Processor</h3>
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border-2 border-dashed border-blue-200 mb-4">
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>✨ Paste anything!</strong> Spreadsheet data, notes, lists, or any format. The AI will intelligently extract your tasks.
+              </p>
+              <div className="text-xs text-gray-600 space-y-1">
+                <div><strong>✅ Works with:</strong> Excel/CSV data, bullet points, numbered lists, notes, emails, documents</div>
+                <div><strong>🎯 AI extracts:</strong> Task names, descriptions, software used, manual steps, triggers</div>
               </div>
             </div>
-            
-            <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
-              <p className="text-sm text-gray-600 mb-3">
-                <strong>Paste your data below:</strong> Supports both formats above (tab-separated or comma-separated)
-              </p>
-              <textarea
-                placeholder="FALSE	Respond to enquiry	3 attempts within 48 hours	CRM	1 - Check email inbox&#10;2 - Reply within 24 hours&#10;3 - Follow up if no response"
-                rows={6}
-                onChange={(e) => handleImportTasks(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
-              />
-              <div className="mt-2 text-xs text-gray-500">
-                💡 <strong>Tip:</strong> Copy directly from Excel/Google Sheets - the system will automatically detect your format
+            <textarea
+              placeholder="Paste your content here - any format works! 
+
+Examples:
+• Spreadsheet: FALSE	Create deal	Once you have details	CRM	1-Go to customers...
+• Notes: Need to process invoices in QuickBooks every week - takes 3 hours
+• List: - Send follow-up emails - Update CRM records - Generate reports
+
+The AI will understand and extract your tasks automatically!"
+              rows={8}
+              onChange={(e) => handleAIProcessing(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
+            />
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setShowImport(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <div className="text-xs text-gray-500 flex-1 flex items-center">
+                💡 The AI will process your content and extract individual tasks for analysis
               </div>
             </div>
           </div>
