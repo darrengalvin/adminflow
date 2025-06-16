@@ -686,7 +686,15 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack }) => {
   };
 
   const handleAIProcessing = async (text: string) => {
-    if (!text.trim()) return;
+    console.log('handleAIProcessing called with:', text);
+    if (!text.trim()) {
+      console.log('No text provided, returning early');
+      return;
+    }
+    
+    // Show processing feedback
+    console.log('Showing AI processing message');
+    showAI('🤖 Processing your content with AI...');
     
     // Let AI process any format of text and extract tasks
     try {
@@ -741,6 +749,7 @@ Only return the JSON array, no other text.`
               setSoftware(task.software || '');
               setTimeSpent(task.timeSpent || '2 hours per week');
               setShowImport(false);
+              showSuccess('✅ Task extracted successfully!');
             } else if (validTasks.length > 1) {
               // Multiple tasks - prepare for batch processing
               const batchTasks = validTasks.map((task, index) => ({
@@ -756,17 +765,26 @@ Only return the JSON array, no other text.`
               setBatchTasks(batchTasks);
               setShowImport(false);
               setStep('batch');
+              showSuccess(`✅ Found ${validTasks.length} tasks to process!`);
+            } else {
+              showError('❌ No valid tasks found. Using fallback processing...');
+              handleImportTasks(text);
             }
+          } else {
+            showError('❌ AI response format error. Using fallback processing...');
+            handleImportTasks(text);
           }
         } catch (parseError) {
           console.error('Error parsing AI response:', parseError);
-          // Fallback to simple text processing
+          showError('❌ AI processing failed. Using fallback processing...');
           handleImportTasks(text);
         }
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error with AI processing:', error);
-      // Fallback to simple text processing
+      showError('❌ AI service unavailable. Using fallback processing...');
       handleImportTasks(text);
     }
   };
@@ -3659,9 +3677,12 @@ The AI will understand and extract your tasks automatically!"
                 Cancel
               </button>
               <button
-                onClick={() => handleAIProcessing(importText)}
+                onClick={() => {
+                  console.log('Process with AI button clicked!', importText);
+                  handleAIProcessing(importText);
+                }}
                 disabled={!importText.trim()}
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <span>🤖</span>
                 Process with AI
