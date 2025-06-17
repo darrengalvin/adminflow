@@ -15,7 +15,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { PDFReportGenerator } from './pdf/PDFReportGenerator';
-import { ClaudeService, WorkflowAnalysisRequest, AIGeneratedContent } from '../services/claudeService';
+import { ClaudeService, WorkflowAnalysisRequest, AIGeneratedReport } from '../services/claudeService';
 
 // Sample industry data for robust reports
 const sampleIndustries = [
@@ -196,15 +196,15 @@ const sampleIndustries = [
 export function Reports() {
   const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState<AIGeneratedContent | null>(null);
+  const [generatedReport, setGeneratedReport] = useState<AIGeneratedReport | null>(null);
   const [dataImportText, setDataImportText] = useState('');
   const [isGeneratingFromData, setIsGeneratingFromData] = useState(false);
-  const [dataGeneratedContent, setDataGeneratedContent] = useState<AIGeneratedContent | null>(null);
+  const [dataGeneratedReport, setDataGeneratedReport] = useState<AIGeneratedReport | null>(null);
 
   // Show industry report section
   const showIndustryReportSection = (industry: typeof sampleIndustries[0]) => {
     setSelectedIndustry(industry.id);
-    setGeneratedContent(null); // Clear any previous content
+    setGeneratedReport(null); // Clear any previous content
     setIsGeneratingReport(false);
     
     // Scroll to the report section
@@ -216,66 +216,76 @@ export function Reports() {
     }, 100);
   };
 
-  // Generate report from sample industry
+  // Generate report from sample industry - now using dynamic React components
   const generateIndustryReport = async (industry: typeof sampleIndustries[0]) => {
-    setIsGeneratingReport(true);
-    setGeneratedContent(null); // Clear previous content
-    
-    try {
-      const claudeService = new ClaudeService();
-      const aiContent = await claudeService.generateImplementationGuide(industry.workflow);
-      setGeneratedContent(aiContent);
-    } catch (error) {
-      console.error('Error generating industry report:', error);
-      alert('Error generating report. Please check your Claude API key configuration.');
-    } finally {
-      setIsGeneratingReport(false);
-    }
+    console.log('🚀 Generating dynamic React component report for:', industry.name);
+    // The PDFReportGenerator will handle the generation process
   };
 
-  // Generate report from user data
-  const generateDataReport = async () => {
+  // Create workflow request from user data for dynamic React component generation
+  const createDataWorkflowRequest = (): WorkflowAnalysisRequest => {
     if (!dataImportText.trim()) {
-      alert('Please enter some data to generate a report from.');
-      return;
+      throw new Error('Please enter some data to generate a report from.');
     }
 
-    setIsGeneratingFromData(true);
-    setDataGeneratedContent(null); // Clear previous content
+    // Extract company name and focus area from user data if provided
+    const userText = dataImportText.toLowerCase();
+    let companyName = 'Your Organization';
+    let focusArea = 'Business Process Automation';
     
-    try {
-      // Parse the data and create a workflow request
-      const workflowRequest: WorkflowAnalysisRequest = {
-        workflowName: 'Custom Data Analysis & Automation',
-        workflowDescription: `Analysis and automation recommendations based on the following data: ${dataImportText.substring(0, 200)}...`,
-        steps: [
-          {
-            name: 'Data Processing & Analysis',
-            description: 'Automated processing and analysis of the provided data to identify patterns and opportunities',
-            type: 'ai'
-          },
-          {
-            name: 'Automation Opportunity Identification',
-            description: 'AI-powered identification of automation opportunities within the data and processes',
-            type: 'ai'
-          },
-          {
-            name: 'Implementation & Integration',
-            description: 'Automated system integration and implementation of identified improvements',
-            type: 'automation'
-          }
-        ]
-      };
-
-      const claudeService = new ClaudeService();
-      const aiContent = await claudeService.generateImplementationGuide(workflowRequest);
-      setDataGeneratedContent(aiContent);
-    } catch (error) {
-      console.error('Error generating data report:', error);
-      alert('Error generating report. Please check your Claude API key configuration.');
-    } finally {
-      setIsGeneratingFromData(false);
+    // Try to extract company name patterns
+    const companyPatterns = [
+      /(?:company|organization|business|firm|corp|inc|ltd)[\s:]*([^\n,\.]+)/i,
+      /(?:we are|i work at|our company|my company)[\s:]*([^\n,\.]+)/i,
+      /(?:^|\n)([A-Z][a-zA-Z\s&]+(?:Inc|Corp|LLC|Ltd|Company|Organization))/
+    ];
+    
+    for (const pattern of companyPatterns) {
+      const match = dataImportText.match(pattern);
+      if (match && match[1]) {
+        companyName = match[1].trim();
+        break;
+      }
     }
+    
+    // Try to extract focus area
+    if (userText.includes('healthcare') || userText.includes('patient') || userText.includes('medical')) {
+      focusArea = 'Healthcare Process Automation';
+    } else if (userText.includes('finance') || userText.includes('banking') || userText.includes('investment')) {
+      focusArea = 'Financial Services Automation';
+    } else if (userText.includes('manufacturing') || userText.includes('production') || userText.includes('quality')) {
+      focusArea = 'Manufacturing Process Automation';
+    } else if (userText.includes('retail') || userText.includes('ecommerce') || userText.includes('customer')) {
+      focusArea = 'Customer Experience Automation';
+    }
+
+    // Create comprehensive workflow request for dynamic React component generation
+    return {
+      workflowName: `${focusArea} - ${companyName}`,
+      workflowDescription: `Comprehensive automation strategy for ${companyName} focusing on ${focusArea.toLowerCase()}. Based on provided data: ${dataImportText.substring(0, 300)}...`,
+      steps: [
+        {
+          name: 'Data Analysis & Process Mapping',
+          description: 'Comprehensive analysis of current processes, data flows, and identification of automation opportunities based on provided information',
+          type: 'ai'
+        },
+        {
+          name: 'AI-Powered Solution Design',
+          description: 'Design of intelligent automation solutions using AI/ML technologies tailored to the specific business requirements and data patterns',
+          type: 'ai'
+        },
+        {
+          name: 'System Integration & Implementation',
+          description: 'Technical implementation of automation solutions with API integrations, workflow orchestration, and system connectivity',
+          type: 'automation'
+        },
+        {
+          name: 'Performance Monitoring & Optimization',
+          description: 'Continuous monitoring, performance analytics, and iterative optimization of automated processes',
+          type: 'monitoring'
+        }
+      ]
+    };
   };
 
   const selectedIndustryData = sampleIndustries.find(ind => ind.id === selectedIndustry);
@@ -295,13 +305,13 @@ export function Reports() {
         </p>
       </div>
 
-              {/* Main Options Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+      {/* Main Options Grid - Improved spacing */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-12">
         
         {/* Option 1: Sample Industry Reports */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all">
+        <div className="bg-white rounded-xl p-8 border border-gray-200 shadow-sm hover:shadow-md transition-all">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Sparkles className="h-8 w-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Try Sample Industry Reports</h3>
@@ -313,24 +323,20 @@ export function Reports() {
           <div className="space-y-3">
             {sampleIndustries.map((industry) => {
               const Icon = industry.icon;
-              const colorClasses = {
-                emerald: 'bg-emerald-600 hover:bg-emerald-700 border-emerald-500',
-                blue: 'bg-blue-600 hover:bg-blue-700 border-blue-500',
-                purple: 'bg-purple-600 hover:bg-purple-700 border-purple-500',
-                indigo: 'bg-indigo-600 hover:bg-indigo-700 border-indigo-500'
-              };
               
               return (
                 <button
                   key={industry.id}
                   onClick={() => showIndustryReportSection(industry)}
                   disabled={isGeneratingReport}
-                  className={`w-full p-4 rounded-lg ${colorClasses[industry.color as keyof typeof colorClasses]} text-white border-l-4 hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className="w-full p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
                 >
                   <div className="flex items-center space-x-3">
-                    <Icon className="h-5 w-5" />
-                    <span className="font-medium text-left">{industry.name}</span>
-                    <ArrowRight className="h-4 w-4 ml-auto" />
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
+                      <Icon className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
+                    </div>
+                    <span className="font-medium text-left text-gray-700 group-hover:text-blue-700">{industry.name}</span>
+                    <ArrowRight className="h-4 w-4 ml-auto text-gray-400 group-hover:text-blue-500" />
                   </div>
                 </button>
               );
@@ -338,10 +344,10 @@ export function Reports() {
           </div>
         </div>
 
-        {/* Option 2: Data Import */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all">
+        {/* Option 2: Data Import - Improved spacing */}
+        <div className="bg-white rounded-xl p-8 border border-gray-200 shadow-sm hover:shadow-md transition-all">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-slate-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Upload className="h-8 w-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Generate from Your Data</h3>
@@ -358,37 +364,44 @@ export function Reports() {
 
 Example:
 - Customer support tickets and response times
-- Sales process workflows
+- Sales process workflows  
 - Financial reporting procedures
 - Manufacturing quality control data
-- Any business process you want to automate"
-              className="w-full h-40 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+- Any business process you want to automate
+
+Include your company name and specific focus areas for personalized results."
+              className="w-full h-48 p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
             
             <button
-              onClick={generateDataReport}
-              disabled={isGeneratingFromData || !dataImportText.trim()}
-              className="w-full bg-slate-600 hover:bg-slate-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 border-l-4 border-slate-500"
+              onClick={() => {
+                try {
+                  const workflowRequest = createDataWorkflowRequest();
+                  setDataGeneratedReport(null); // Clear previous report
+                  // Scroll to data generation area
+                  setTimeout(() => {
+                    const dataElement = document.getElementById('data-generation-area');
+                    if (dataElement) {
+                      dataElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }, 100);
+                } catch (error) {
+                  alert(error.message);
+                }
+              }}
+              disabled={!dataImportText.trim()}
+              className="w-full border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 py-3 px-4 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 group"
             >
-              {isGeneratingFromData ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Generating Report...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-5 w-5" />
-                  <span>Generate AI Report</span>
-                </>
-              )}
+              <Sparkles className="h-5 w-5 group-hover:text-slate-600" />
+              <span>Generate AI Report</span>
             </button>
           </div>
         </div>
 
-        {/* Option 3: Workflow Requirement */}
-        <div className="bg-amber-50 rounded-xl p-6 border border-amber-200">
+        {/* Option 3: Workflow Requirement - Improved spacing */}
+        <div className="bg-amber-50 rounded-xl p-8 border border-amber-200">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-amber-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <AlertCircle className="h-8 w-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Workflow Reports</h3>
@@ -397,11 +410,11 @@ Example:
             </p>
           </div>
           
-          <div className="bg-white rounded-lg p-4 border border-amber-200">
+          <div className="bg-white rounded-lg p-6 border border-amber-200">
             <div className="flex items-start space-x-3">
               <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm text-gray-700 mb-3">
+                <p className="text-sm text-gray-700 mb-4">
                   <strong>Current Status:</strong> You currently only have one step in your workflow. Please add 2 more steps and then we can produce your development implementation report.
                 </p>
                 <div className="space-y-2">
@@ -424,9 +437,9 @@ Example:
           
           <button
             onClick={() => window.open('#workflows', '_self')}
-            className="w-full mt-4 bg-amber-600 hover:bg-amber-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 border-l-4 border-amber-500"
+            className="w-full mt-6 border-2 border-amber-300 hover:border-amber-400 hover:bg-amber-100 text-amber-700 py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 group"
           >
-            <ArrowRight className="h-5 w-5" />
+            <ArrowRight className="h-5 w-5 group-hover:text-amber-600" />
             <span>Go to Workflow Designer</span>
           </button>
         </div>
@@ -445,10 +458,8 @@ Example:
           </div>
           
           <PDFReportGenerator 
-            content={generatedContent}
             workflowData={selectedIndustryData.workflow}
-            isGenerating={isGeneratingReport}
-            onGenerateReport={() => generateIndustryReport(selectedIndustryData)}
+            onGenerateReport={(report) => setGeneratedReport(report)}
           />
         </div>
       )}
@@ -466,19 +477,11 @@ Example:
           </div>
           
           <PDFReportGenerator 
-            content={dataGeneratedContent}
-            workflowData={{
-              workflowName: 'Custom Data Analysis & Automation',
-              workflowDescription: 'AI-generated analysis based on your provided data',
-              steps: []
-            }}
-            isGenerating={isGeneratingFromData}
-            onGenerateReport={generateDataReport}
+            workflowData={createDataWorkflowRequest()}
+            onGenerateReport={(report) => setDataGeneratedReport(report)}
           />
         </div>
       )}
-
-
 
       {/* Autopilot Reports Section */}
       <div className="bg-gray-50 rounded-2xl p-8 border border-gray-200">

@@ -21,15 +21,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    // Get API key from environment variables
-    const apiKey = process.env.VITE_CLAUDE_API_KEY || process.env.claudeApiKey;
+    // Get API key from environment variables (server-side doesn't use VITE_ prefix)
+    const apiKey = process.env.CLAUDE_API_KEY || process.env.VITE_CLAUDE_API_KEY || process.env.claudeApiKey;
     
-    console.log('📋 PDF Report API Key check:', {
+    console.log('📋 PDF Report API Key check (Vercel Pro):', {
       hasViteKey: !!process.env.VITE_CLAUDE_API_KEY,
-      hasClaudeKey: !!process.env.claudeApiKey,
+      hasClaudeKey: !!process.env.CLAUDE_API_KEY,
       hasAnyKey: !!apiKey,
       keyLength: apiKey ? apiKey.length : 0,
-      reportType: reportType
+      reportType: reportType,
+      maxDuration: '300s (Vercel Pro)',
+      envKeys: Object.keys(process.env).filter(key => key.includes('CLAUDE'))
     });
     
     if (!apiKey) {
@@ -42,13 +44,13 @@ export default async function handler(req, res) {
     }
 
     // Make request to Claude API
-    console.log('🤖 Making PDF report request to Claude API with model: claude-opus-4-20250514');
+    console.log('🤖 Making PDF report request to Claude API with model: claude-opus-4-20250514 (Vercel Pro Extended Timeout)');
     console.log('📝 Prompt length:', prompt.length, 'characters');
     console.log('📋 Prompt preview:', prompt.substring(0, 200) + '...');
     
     const requestBody = {
-      model: 'claude-opus-4-20250514', // Using Claude 4 Opus - the most capable model
-      max_tokens: 4000, // Matching working task analysis
+      model: 'claude-opus-4-20250514', // Keep Claude 4 Opus as requested
+      max_tokens: 6000, // Increased for comprehensive reports
       messages: [
         {
           role: 'user',
@@ -56,8 +58,13 @@ export default async function handler(req, res) {
         }
       ]
     };
+
+    // Create AbortController for timeout handling - Vercel Pro allows up to 5 minutes (300s)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 290000); // 4 min 50 sec timeout (10s buffer for Vercel Pro)
     
     console.log('📤 Request body:', JSON.stringify(requestBody, null, 2).substring(0, 500) + '...');
+    console.log('⏰ Using Vercel Pro extended timeout: 290 seconds');
     
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -66,8 +73,11 @@ export default async function handler(req, res) {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId); // Clear timeout if request completes
 
     console.log('📡 Claude API response status:', response.status);
 
@@ -98,7 +108,7 @@ export default async function handler(req, res) {
     const data = await response.json();
     const claudeResponse = data.content[0]?.text || '';
 
-    console.log('✅ Successfully received Claude response for PDF report');
+    console.log('✅ Successfully received Claude response for PDF report (Vercel Pro)');
     console.log('📊 Response length:', claudeResponse.length, 'characters');
 
     return res.status(200).json({
@@ -106,11 +116,24 @@ export default async function handler(req, res) {
       content: claudeResponse,
       source: 'claude-api',
       model: 'claude-opus-4-20250514',
-      reportType: reportType
+      reportType: reportType,
+      vercelPro: true
     });
 
   } catch (error) {
     console.error('❌ Error in PDF report generation:', error);
+    
+    // Handle timeout specifically
+    if (error.name === 'AbortError') {
+      console.error('⏰ Request timed out after 290 seconds (Vercel Pro limit)');
+      return res.status(504).json({ 
+        error: 'Request timeout - Claude API took longer than 5 minutes (Vercel Pro limit)',
+        success: false,
+        source: 'timeout',
+        details: 'The comprehensive report generation exceeded Vercel Pro timeout limits. Consider simplifying the workflow or using split API strategy.'
+      });
+    }
+    
     return res.status(500).json({ 
       error: 'Internal server error',
       success: false,

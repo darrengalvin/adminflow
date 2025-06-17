@@ -10,6 +10,11 @@
       "NODE_VERSION": "18"
     }
   },
+  "functions": {
+    "api/claude-pdf.js": {
+      "maxDuration": 300
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",

@@ -11,86 +11,14 @@ export interface WorkflowAnalysisRequest {
   }>;
 }
 
-export interface AIGeneratedContent {
-  executiveSummary: {
+export interface AIGeneratedReport {
+  componentCode: string;
+  reportData: any;
+  metadata: {
     title: string;
-    overview: string;
-    keyBenefits: string[];
-    roiMetrics: {
-      annualHoursSaved: number;
-      annualValue: string;
-      efficiencyGain: string;
-      setupTime: string;
-    };
+    generatedAt: string;
+    isRealAI: boolean;
   };
-  technicalSpecification: {
-    title: string;
-    automationType: string;
-    requiredTechnologies: string[];
-    apiConnections: Array<{
-      name: string;
-      purpose: string;
-      endpoint: string;
-      method: string;
-      authentication: string;
-      sampleRequest: any;
-      sampleResponse: any;
-    }>;
-    architectureOverview: string;
-  };
-  implementationPlan: {
-    title: string;
-    phases: Array<{
-      phase: string;
-      duration: string;
-      description: string;
-      tasks: string[];
-      deliverables: string[];
-    }>;
-    totalTimeline: string;
-    criticalPath: string[];
-  };
-  resourceRequirements: {
-    title: string;
-    technicalRequirements: string[];
-    teamRequirements: Array<{
-      role: string;
-      responsibilities: string[];
-      timeCommitment: string;
-    }>;
-    budgetEstimate: {
-      developmentCost: string;
-      ongoingCosts: string;
-      roiBreakeven: string;
-    };
-  };
-  successMetrics: {
-    title: string;
-    kpis: Array<{
-      metric: string;
-      target: string;
-      measurementMethod: string;
-    }>;
-    monitoringApproach: string;
-    reportingFrequency: string;
-  };
-  riskAssessment: {
-    title: string;
-    risks: Array<{
-      risk: string;
-      impact: string;
-      probability: string;
-      mitigation: string;
-    }>;
-    contingencyPlans: string[];
-  };
-  codeExamples: Array<{
-    title: string;
-    language: string;
-    description: string;
-    code: string;
-    explanation: string;
-  }>;
 }
 
 export class ClaudeService {
@@ -106,7 +34,7 @@ export class ClaudeService {
         },
         body: JSON.stringify({
           prompt: prompt,
-          reportType: 'implementation-guide'
+          reportType: 'react-component'
         })
       });
 
@@ -115,6 +43,12 @@ export class ClaudeService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error('❌ PDF API error:', errorData);
+        
+        // Handle timeout specifically
+        if (response.status === 504) {
+          throw new Error(`Report generation timed out. The comprehensive prompt requires significant processing time. Please try again or consider simplifying the workflow.`);
+        }
+        
         throw new Error(`PDF API error: ${response.status} - ${errorData.error || 'Unknown error'}`);
       }
 
@@ -126,328 +60,246 @@ export class ClaudeService {
       });
 
       if (data.success && data.content) {
+        console.log('✅ Using REAL AI-generated React component from Claude 4 Opus');
         return data.content;
       } else {
         throw new Error('Invalid response format from PDF API');
       }
     } catch (error) {
       console.error('❌ Error calling PDF API:', error);
+      console.log('⚠️ Falling back to static content (API not available in local dev)');
       throw error;
     }
   }
 
-  async generateImplementationGuide(workflowData: WorkflowAnalysisRequest): Promise<AIGeneratedContent> {
-    console.log('🤖 Making REAL API call to Claude 3.5 Sonnet for report generation...');
+  async generateReactReport(workflowData: WorkflowAnalysisRequest): Promise<AIGeneratedReport> {
+    console.log('🤖 Making REAL API call to Claude 4 Opus for React component generation...');
     console.log('📊 Workflow data:', { 
       name: workflowData.workflowName, 
       steps: workflowData.steps.length,
       hasApiKey: !!CLAUDE_API_KEY
     });
     
-    const prompt = `Create an implementation guide for automating this workflow: ${workflowData.workflowName}
+    // Revolutionary prompt: Generate complete React component from scratch
+    const prompt = `You are a world-class React developer and Fortune 500 business consultant. Generate a COMPLETE, PRODUCTION-READY React component for a comprehensive business implementation report.
 
-Steps: ${workflowData.steps.map((step, index) => `${index + 1}. ${step.name}`).join(', ')}
+**Project Details:**
+- Name: ${workflowData.workflowName}
+- Description: ${workflowData.workflowDescription}
+- Steps: ${workflowData.steps.map((step, index) => `${index + 1}. ${step.name}`).join(', ')}
 
-Return ONLY valid JSON in this format:
+**CRITICAL REQUIREMENTS:**
 
-{
-  "executiveSummary": {
-    "title": "Executive Summary",
-    "overview": "Automation overview for ${workflowData.workflowName}",
-    "keyBenefits": ["Time savings", "Reduced errors", "Improved efficiency", "Cost reduction"],
-    "roiMetrics": {
-      "annualHoursSaved": 200,
-      "annualValue": "£5,000",
-      "efficiencyGain": "75%",
-      "setupTime": "2-4 weeks"
-    }
-  },
-  "technicalSpecification": {
-    "title": "Technical Implementation",
-    "automationType": "API Integration",
-    "requiredTechnologies": ["REST APIs", "Authentication", "Data Processing"],
-    "apiConnections": [
-      {
-        "name": "Main API",
-        "purpose": "Process automation",
-        "endpoint": "https://api.example.com/v1/process",
-        "method": "POST",
-        "authentication": "Bearer Token",
-        "sampleRequest": {"data": "input"},
-        "sampleResponse": {"result": "output"}
-      }
-    ],
-    "architectureOverview": "Modern API-based automation system"
-  },
-  "implementationPlan": {
-    "title": "Implementation Plan",
-    "phases": [
-      {
-        "phase": "Setup",
-        "duration": "Week 1",
-        "description": "Initial configuration",
-        "tasks": ["API setup", "Authentication", "Testing"],
-        "deliverables": ["Working API", "Test results"]
-      }
-    ],
-    "totalTimeline": "2-4 weeks",
-    "criticalPath": ["API setup", "Integration", "Testing"]
-  },
-  "resourceRequirements": {
-    "title": "Resources Needed",
-    "technicalRequirements": ["API access", "Development environment", "Testing tools"],
-    "teamRequirements": [
-      {
-        "role": "Developer",
-        "responsibilities": ["API integration", "Testing"],
-        "timeCommitment": "2-3 weeks"
-      }
-    ],
-    "budgetEstimate": {
-      "developmentCost": "£3,000-£8,000",
-      "ongoingCosts": "£100-300/month",
-      "roiBreakeven": "3-6 months"
-    }
-  },
-  "successMetrics": {
-    "title": "Success Metrics",
-    "kpis": [
-      {
-        "metric": "Time saved",
-        "target": "4+ hours",
-        "measurementMethod": "Before/after tracking"
-      }
-    ],
-    "monitoringApproach": "Dashboard monitoring",
-    "reportingFrequency": "Weekly reports"
-  },
-  "riskAssessment": {
-    "title": "Risk Assessment",
-    "risks": [
-      {
-        "risk": "Integration issues",
-        "impact": "Medium",
-        "probability": "Low",
-        "mitigation": "Thorough testing"
-      }
-    ],
-    "contingencyPlans": ["Backup solution", "Manual fallback"]
-  },
-  "codeExamples": [
-    {
-      "title": "API Call Example",
-      "language": "javascript",
-      "description": "Basic automation call",
-      "code": "fetch('/api/automate', {method: 'POST', body: JSON.stringify(data)})",
-      "explanation": "Simple API integration example"
-    }
-  ]
-}`;
+1. **Generate COMPLETE React Component Code** - Include everything from imports to export
+2. **Modern, Beautiful Design** - Use Tailwind CSS, gradients, shadows, modern UI patterns
+3. **Interactive Charts** - Include Recharts (PieChart, AreaChart, BarChart) with realistic data
+4. **Professional Layout** - Multi-section report with navigation, headers, footers
+5. **Real Business Data** - Generate realistic ROI metrics, timelines, costs, technologies
+6. **Responsive Design** - Mobile-friendly with proper spacing and typography
+7. **Rich Visualizations** - Charts, progress bars, metric cards, comparison tables
+
+**Design Inspiration:** Create something as beautiful as a Fortune 500 annual report with:
+- Hero section with gradient background
+- Interactive navigation
+- Data visualization charts
+- Professional metric cards
+- Detailed implementation phases
+- Technology stack recommendations
+- Financial projections
+- Risk assessments
+
+**Technical Requirements:**
+- Use React functional components with hooks
+- Import Recharts for charts: PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+- Import Lucide React icons: Building2, Globe, Target, Award, Lightbulb, TrendingUp, etc.
+- Use Tailwind CSS for all styling
+- Include realistic sample data for charts
+- Make it fully interactive and professional
+
+**RETURN FORMAT:** Return ONLY the complete React component code, starting with imports and ending with export default. Do NOT include any explanations, markdown formatting, or additional text.
+
+Generate the complete React component now:`;
 
     try {
-      console.log('📡 Sending prompt to Claude API...');
+      console.log('📡 Sending React component generation prompt to Claude 4 Opus (Vercel Pro extended timeout)...');
       const aiResponse = await this.callClaude(prompt);
-      console.log('✅ Got response from Claude API:', { 
+      console.log('✅ Got React component from Claude API:', { 
         responseLength: aiResponse.length,
-        preview: aiResponse.substring(0, 100) + '...'
+        preview: aiResponse.substring(0, 200) + '...'
       });
       
-      // Parse the JSON response
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.error('❌ No JSON found in Claude response');
-        throw new Error('Invalid response format from Claude API');
+      // Extract the React component code
+      const componentMatch = aiResponse.match(/import[\s\S]*?export default \w+;?/);
+      if (!componentMatch) {
+        console.error('❌ No valid React component found in Claude response');
+        console.error('Response preview:', aiResponse.substring(0, 1000));
+        throw new Error('Invalid React component format from Claude API');
       }
       
-      const parsedResponse = JSON.parse(jsonMatch[0]);
-      console.log('🎯 Successfully parsed REAL Claude response for:', workflowData.workflowName);
-      return parsedResponse as AIGeneratedContent;
-    } catch (error) {
-      console.error('❌ FAILED to get real Claude response, using fallback:', error);
+      const componentCode = componentMatch[0];
       
-      // Fallback to a basic structure if API fails
-      return this.getFallbackContent(workflowData);
+      console.log('🎯 Successfully extracted REAL Claude React component for:', workflowData.workflowName);
+      return {
+        componentCode,
+        reportData: {
+          workflowName: workflowData.workflowName,
+          workflowDescription: workflowData.workflowDescription,
+          steps: workflowData.steps
+        },
+        metadata: {
+          title: workflowData.workflowName,
+          generatedAt: new Date().toISOString(),
+          isRealAI: true
+        }
+      };
+    } catch (error) {
+      console.error('❌ FAILED to get real Claude React component, using fallback:', error);
+      return this.getFallbackReactReport(workflowData);
     }
   }
 
-  private getFallbackContent(workflowData: WorkflowAnalysisRequest): AIGeneratedContent {
-    return {
-      executiveSummary: {
-        title: "Executive Summary",
-        overview: `This implementation guide outlines the automation strategy for ${workflowData.workflowName}. The proposed solution will streamline operations, reduce manual effort, and improve overall efficiency through intelligent automation.`,
-        keyBenefits: [
-          "Significant time savings through automation",
-          "Reduced human error and improved accuracy",
-          "Enhanced scalability and consistency",
-          "Better resource allocation and cost efficiency",
-          "Improved data insights and reporting capabilities"
-        ],
-        roiMetrics: {
-          annualHoursSaved: 156,
-          annualValue: "£3,900",
-          efficiencyGain: "70%",
-          setupTime: "3-5 days"
-        }
-      },
-      technicalSpecification: {
-        title: "Technical Implementation Specification",
-        automationType: "API Integration with AI Processing",
-        requiredTechnologies: [
-          "REST API Integration",
-          "Authentication & Security",
-          "Data Processing Pipeline",
-          "Monitoring & Logging",
-          "Error Handling & Recovery"
-        ],
-        apiConnections: [
-          {
-            name: "Primary Service API",
-            purpose: "Main automation endpoint for workflow processing",
-            endpoint: "https://api.service.com/v1/automation",
-            method: "POST",
-            authentication: "Bearer Token (OAuth 2.0)",
-            sampleRequest: {
-              "workflowId": "wf_123456",
-              "data": {
-                "input": "sample data"
-              }
-            },
-            sampleResponse: {
-              "status": "success",
-              "processId": "proc_789012",
-              "result": "processed data"
-            }
-          }
-        ],
-        architectureOverview: "The solution follows a microservices architecture with API-first design, ensuring scalability and maintainability."
-      },
-      implementationPlan: {
-        title: "Implementation Timeline & Milestones",
-        phases: [
-          {
-            phase: "Phase 1: Setup & Configuration",
-            duration: "Day 1-2",
-            description: "Initial setup, API configuration, and authentication",
-            tasks: ["API key setup", "Environment configuration", "Basic connectivity testing"],
-            deliverables: ["Working API connection", "Authentication setup", "Basic test results"]
-          },
-          {
-            phase: "Phase 2: Development & Integration",
-            duration: "Day 3-4",
-            description: "Core development and system integration",
-            tasks: ["Workflow logic implementation", "Error handling", "Data processing"],
-            deliverables: ["Core automation logic", "Error handling system", "Integration tests"]
-          },
-          {
-            phase: "Phase 3: Testing & Deployment",
-            duration: "Day 5",
-            description: "Final testing, deployment, and monitoring setup",
-            tasks: ["Comprehensive testing", "Production deployment", "Monitoring setup"],
-            deliverables: ["Deployed system", "Monitoring dashboard", "Documentation"]
-          }
-        ],
-        totalTimeline: "5 days",
-        criticalPath: ["API setup", "Core development", "Testing", "Deployment"]
-      },
-      resourceRequirements: {
-        title: "Resource Requirements & Prerequisites",
-        technicalRequirements: [
-          "API access and credentials",
-          "Development environment",
-          "Testing infrastructure",
-          "Monitoring tools",
-          "Security compliance tools"
-        ],
-        teamRequirements: [
-          {
-            role: "Developer",
-            responsibilities: ["API integration", "Code development", "Testing"],
-            timeCommitment: "5 days"
-          },
-          {
-            role: "QA Engineer",
-            responsibilities: ["Testing", "Quality assurance", "Documentation"],
-            timeCommitment: "2 days"
-          }
-        ],
-        budgetEstimate: {
-          developmentCost: "£2,000-£5,000",
-          ongoingCosts: "£50-200/month",
-          roiBreakeven: "2-3 months"
-        }
-      },
-      successMetrics: {
-        title: "Success Metrics & KPIs",
-        kpis: [
-          {
-            metric: "Processing time reduction",
-            target: "70% improvement",
-            measurementMethod: "Before/after time comparison"
-          },
-          {
-            metric: "Error rate reduction",
-            target: "90% fewer errors",
-            measurementMethod: "Error tracking and analysis"
-          },
-          {
-            metric: "Cost savings",
-            target: "£3,900 annually",
-            measurementMethod: "Time value calculations"
-          }
-        ],
-        monitoringApproach: "Continuous monitoring with automated alerts and dashboard reporting",
-        reportingFrequency: "Weekly performance reports with monthly business impact analysis"
-      },
-      riskAssessment: {
-        title: "Risk Assessment & Mitigation",
-        risks: [
-          {
-            risk: "API availability and reliability",
-            impact: "High",
-            probability: "Low",
-            mitigation: "Implement redundancy and failover mechanisms"
-          },
-          {
-            risk: "Data security and privacy concerns",
-            impact: "High",
-            probability: "Low",
-            mitigation: "Implement encryption and access controls"
-          }
-        ],
-        contingencyPlans: [
-          "Manual fallback procedures",
-          "Alternative API providers",
-          "Emergency rollback procedures"
-        ]
-      },
-      codeExamples: [
-        {
-          title: "API Authentication Setup",
-          language: "javascript",
-          description: "Setting up OAuth 2.0 authentication for API access",
-          code: `const auth = {
-  clientId: process.env.CLIENT_ID,
-  clientSecret: process.env.CLIENT_SECRET,
-  tokenUrl: 'https://api.service.com/oauth/token'
-};
+  private getFallbackReactReport(workflowData: WorkflowAnalysisRequest): AIGeneratedReport {
+    console.log('⚠️ Using STATIC FALLBACK React component for:', workflowData.workflowName);
+    console.log('🔧 Deploy to production to see real AI-generated components');
+    
+    const fallbackComponent = `import React from 'react';
+import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Building2, TrendingUp, Target, Award } from 'lucide-react';
 
-async function getAccessToken() {
-  const response = await fetch(auth.tokenUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      grant_type: 'client_credentials',
-      client_id: auth.clientId,
-      client_secret: auth.clientSecret
-    })
-  });
-  
-  const data = await response.json();
-  return data.access_token;
-}`,
-          explanation: "This code demonstrates OAuth 2.0 client credentials flow for API authentication. Store credentials securely and implement token refresh logic."
-        }
-      ]
+export default function ${workflowData.workflowName.replace(/[^a-zA-Z0-9]/g, '')}Report() {
+  const chartData = [
+    { name: 'Phase 1', value: 30, color: '#3b82f6' },
+    { name: 'Phase 2', value: 25, color: '#8b5cf6' },
+    { name: 'Phase 3', value: 25, color: '#ec4899' },
+    { name: 'Phase 4', value: 20, color: '#f59e0b' }
+  ];
+
+  const monthlyData = [
+    { month: 'Jan', value: 1200 },
+    { month: 'Feb', value: 1800 },
+    { month: 'Mar', value: 2400 },
+    { month: 'Apr', value: 3200 },
+    { month: 'May', value: 4100 },
+    { month: 'Jun', value: 5000 }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-br from-blue-600 to-purple-700 text-white p-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center gap-4 mb-8">
+            <Building2 className="w-12 h-12" />
+            <div>
+              <h1 className="text-4xl font-bold">${workflowData.workflowName}</h1>
+              <p className="text-blue-200">AI-Powered Implementation Guide</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-12">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+              <TrendingUp className="w-8 h-8 mb-3" />
+              <h3 className="text-2xl font-bold">£156,000</h3>
+              <p className="text-blue-200">Annual Value</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+              <Target className="w-8 h-8 mb-3" />
+              <h3 className="text-2xl font-bold">2,400 hrs</h3>
+              <p className="text-blue-200">Hours Saved</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+              <Award className="w-8 h-8 mb-3" />
+              <h3 className="text-2xl font-bold">85%</h3>
+              <p className="text-blue-200">Efficiency Gain</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+              <Building2 className="w-8 h-8 mb-3" />
+              <h3 className="text-2xl font-bold">6-8 weeks</h3>
+              <p className="text-blue-200">Implementation</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto p-8">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-8">
+          <h3 className="font-bold text-yellow-800 mb-2">⚠️ Development Mode</h3>
+          <p className="text-yellow-700">This is a static template. Deploy to production for real Claude 4 Opus generated components.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Implementation Phases</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  dataKey="value"
+                  label={({ name, percent }) => \`\${name}: \${(percent * 100).toFixed(0)}%\`}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={\`cell-\${index}\`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Progress Timeline</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={monthlyData}>
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Area type="monotone" dataKey="value" stroke="#3b82f6" fillOpacity={1} fill="url(#colorValue)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h3 className="text-2xl font-bold text-gray-800 mb-6">Implementation Overview</h3>
+          <p className="text-gray-600 mb-6">
+            This automated solution for ${workflowData.workflowName} will transform your business operations 
+            through intelligent automation and data-driven insights.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            ${workflowData.steps.map((step, index) => `
+            <div className="p-4 border border-gray-200 rounded-lg">
+              <h4 className="font-semibold text-gray-800 mb-2">${step.name}</h4>
+              <p className="text-sm text-gray-600">Phase ${index + 1} implementation details</p>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}`;
+
+    return {
+      componentCode: fallbackComponent,
+      reportData: {
+        workflowName: workflowData.workflowName,
+        workflowDescription: workflowData.workflowDescription,
+        steps: workflowData.steps
+      },
+      metadata: {
+        title: workflowData.workflowName,
+        generatedAt: new Date().toISOString(),
+        isRealAI: false
+      }
     };
   }
 }
