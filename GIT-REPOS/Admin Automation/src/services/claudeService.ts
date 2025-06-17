@@ -80,79 +80,89 @@ export class ClaudeService {
       hasApiKey: !!CLAUDE_API_KEY
     });
     
-    // Revolutionary prompt: Generate complete React component from scratch
-    const prompt = `You are a world-class React developer and Fortune 500 business consultant. Generate a COMPLETE, PRODUCTION-READY React component for a comprehensive business implementation report.
+    // Simplified prompt for better success rate
+    const prompt = `Generate a complete React component for: ${workflowData.workflowName}
 
-**Project Details:**
-- Name: ${workflowData.workflowName}
-- Description: ${workflowData.workflowDescription}
-- Steps: ${workflowData.steps.map((step, index) => `${index + 1}. ${step.name}`).join(', ')}
+REQUIREMENTS:
+- Complete functional React component with imports and export
+- Use Recharts for charts (PieChart, AreaChart, BarChart)
+- Use Lucide React icons
+- Professional Tailwind CSS styling
+- Interactive elements and realistic data
+- Business metrics and implementation details
 
-**CRITICAL REQUIREMENTS:**
-
-1. **Generate COMPLETE React Component Code** - Include everything from imports to export
-2. **Modern, Beautiful Design** - Use Tailwind CSS, gradients, shadows, modern UI patterns
-3. **Interactive Charts** - Include Recharts (PieChart, AreaChart, BarChart) with realistic data
-4. **Professional Layout** - Multi-section report with navigation, headers, footers
-5. **Real Business Data** - Generate realistic ROI metrics, timelines, costs, technologies
-6. **Responsive Design** - Mobile-friendly with proper spacing and typography
-7. **Rich Visualizations** - Charts, progress bars, metric cards, comparison tables
-
-**Design Inspiration:** Create something as beautiful as a Fortune 500 annual report with:
+STRUCTURE:
 - Hero section with gradient background
-- Interactive navigation
-- Data visualization charts
-- Professional metric cards
-- Detailed implementation phases
-- Technology stack recommendations
-- Financial projections
-- Risk assessments
+- Key metrics cards
+- Charts section (2-3 charts)
+- Implementation overview
+- Professional design
 
-**Technical Requirements:**
-- Use React functional components with hooks
-- Import Recharts for charts: PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-- Import Lucide React icons: Building2, Globe, Target, Award, Lightbulb, TrendingUp, etc.
-- Use Tailwind CSS for all styling
-- Include realistic sample data for charts
-- Make it fully interactive and professional
+IMPORTANT: Return ONLY the complete React component code. No markdown, no explanations.
 
-**RETURN FORMAT:** Return ONLY the complete React component code, starting with imports and ending with export default. Do NOT include any explanations, markdown formatting, or additional text.
-
-Generate the complete React component now:`;
+Component name: ${workflowData.workflowName.replace(/[^a-zA-Z0-9]/g, '')}Report`;
 
     try {
-      console.log('📡 Sending React component generation prompt to Claude 4 Opus (Vercel Pro extended timeout)...');
+      console.log('📡 Sending simplified React component prompt to Claude 4 Opus...');
       const aiResponse = await this.callClaude(prompt);
       console.log('✅ Got React component from Claude API:', { 
         responseLength: aiResponse.length,
         preview: aiResponse.substring(0, 200) + '...'
       });
       
-      // Extract the React component code - improved extraction
-      let componentCode = aiResponse;
+      // Enhanced component extraction with multiple strategies
+      let componentCode = aiResponse.trim();
       
-      // Remove any markdown code blocks if present
+      // Strategy 1: Remove markdown code blocks
       if (componentCode.includes('```')) {
         const codeBlockMatch = componentCode.match(/```(?:jsx?|typescript|tsx?)?\s*([\s\S]*?)\s*```/);
         if (codeBlockMatch) {
-          componentCode = codeBlockMatch[1];
+          componentCode = codeBlockMatch[1].trim();
         }
       }
       
-      // Validate that we have a proper React component
-      const hasImport = componentCode.includes('import React') || componentCode.includes('import {');
-      const hasExport = componentCode.includes('export default') || componentCode.includes('export {');
-      const hasComponent = componentCode.includes('function ') || componentCode.includes('const ') || componentCode.includes('=>');
+      // Strategy 2: Find component boundaries
+      const importStart = componentCode.indexOf('import');
+      const exportMatch = componentCode.match(/export\s+default\s+\w+[;\s]*$/m);
       
-      if (!hasImport || !hasComponent) {
+      if (importStart !== -1 && exportMatch && exportMatch.index !== undefined) {
+        const exportEnd = exportMatch.index + exportMatch[0].length;
+        componentCode = componentCode.substring(importStart, exportEnd).trim();
+      }
+      
+      // Strategy 3: Validate component structure
+      const hasValidImport = componentCode.includes('import React') || componentCode.includes('import {');
+      const hasValidExport = componentCode.includes('export default');
+      const hasFunction = componentCode.includes('function ') || componentCode.includes('const ') || componentCode.includes('=>');
+      
+      console.log('🔍 Component validation:', {
+        hasValidImport,
+        hasValidExport,
+        hasFunction,
+        length: componentCode.length,
+        startsWithImport: componentCode.startsWith('import'),
+        endsWithExport: /export\s+default\s+\w+[;\s]*$/.test(componentCode)
+      });
+      
+      if (!hasValidImport || !hasFunction) {
         console.error('❌ Invalid React component structure in Claude response');
-        console.error('Has import:', hasImport);
-        console.error('Has component:', hasComponent);
-        console.error('Response preview:', componentCode.substring(0, 1000));
+        console.error('Component preview:', componentCode.substring(0, 1000));
         throw new Error('Invalid React component format from Claude API');
       }
       
-      console.log('🎯 Successfully extracted REAL Claude React component for:', workflowData.workflowName);
+      // Strategy 4: Ensure proper component ending
+      if (!hasValidExport) {
+        // Try to fix missing export
+        const componentNameMatch = componentCode.match(/(?:const|function)\s+(\w+)/);
+        if (componentNameMatch) {
+          const componentName = componentNameMatch[1];
+          if (!componentCode.includes(`export default ${componentName}`)) {
+            componentCode += `\n\nexport default ${componentName};`;
+          }
+        }
+      }
+      
+      console.log('🎯 Successfully extracted React component for:', workflowData.workflowName);
       return {
         componentCode,
         reportData: {

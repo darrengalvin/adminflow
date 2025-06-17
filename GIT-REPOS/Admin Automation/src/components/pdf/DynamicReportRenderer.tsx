@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts';
 import * as LucideIcons from 'lucide-react';
 import { AIGeneratedReport } from '../../services/claudeService';
 
@@ -25,6 +25,16 @@ export const DynamicReportRenderer: React.FC<DynamicReportRendererProps> = ({
         .trim();
 
       console.log('🔧 Processing Claude component code:', cleanCode.substring(0, 200) + '...');
+      console.log('📏 Component code length:', cleanCode.length);
+
+      // Validate component completeness
+      if (cleanCode.length < 500) {
+        throw new Error('Component code too short - likely incomplete generation');
+      }
+
+      if (!cleanCode.includes('return (') && !cleanCode.includes('return(')) {
+        throw new Error('Component missing return statement - incomplete generation');
+      }
 
       // Find the component function/const declaration
       let componentMatch = cleanCode.match(/(?:const|function)\s+(\w+)\s*[=\(]/);
@@ -49,6 +59,25 @@ export const DynamicReportRenderer: React.FC<DynamicReportRendererProps> = ({
 
       console.log('✅ Found component name:', componentName);
 
+      // Check for incomplete JSX - common issue with long components
+      const openBraces = (cleanCode.match(/\{/g) || []).length;
+      const closeBraces = (cleanCode.match(/\}/g) || []).length;
+      const openParens = (cleanCode.match(/\(/g) || []).length;
+      const closeParens = (cleanCode.match(/\)/g) || []).length;
+
+      console.log('🔍 Syntax validation:', {
+        openBraces,
+        closeBraces,
+        openParens,
+        closeParens,
+        braceBalance: openBraces - closeBraces,
+        parenBalance: openParens - closeParens
+      });
+
+      if (Math.abs(openBraces - closeBraces) > 2 || Math.abs(openParens - closeParens) > 2) {
+        throw new Error(`Unbalanced syntax detected - component may be incomplete (braces: ${openBraces - closeBraces}, parens: ${openParens - closeParens})`);
+      }
+
       // Create a safe execution environment with all necessary imports
       // Use different variable names to avoid conflicts
       const createComponent = new Function(
@@ -71,19 +100,32 @@ export const DynamicReportRenderer: React.FC<DynamicReportRendererProps> = ({
         'PolarAngleAxis',
         'PolarRadiusAxis',
         'Radar',
+        'LineChart',
+        'Line',
         ...Object.keys(LucideIcons),
         `
         // Extract React hooks with different names to avoid conflicts
         const { useState: useReactState, useEffect: useReactEffect, useMemo: useReactMemo } = ReactHooks;
         
         // Replace useState with useReactState in the code to avoid conflicts
-        const processedCode = \`${cleanCode.replace(/useState/g, 'useReactState').replace(/useEffect/g, 'useReactEffect').replace(/useMemo/g, 'useReactMemo')}\`;
+        const processedCode = \`${cleanCode
+          .replace(/useState/g, 'useReactState')
+          .replace(/useEffect/g, 'useReactEffect')
+          .replace(/useMemo/g, 'useReactMemo')
+          .replace(/'/g, "\\'")
+          .replace(/`/g, "\\`")
+        }\`;
         
-        // Execute the processed code
-        eval(processedCode);
-        
-        // Return the component
-        return ${componentName};
+        try {
+          // Execute the processed code
+          eval(processedCode);
+          
+          // Return the component
+          return ${componentName};
+        } catch (evalError) {
+          console.error('Component execution error:', evalError);
+          throw new Error('Failed to execute component: ' + evalError.message);
+        }
         `
       );
 
@@ -108,6 +150,8 @@ export const DynamicReportRenderer: React.FC<DynamicReportRendererProps> = ({
         PolarAngleAxis,
         PolarRadiusAxis,
         Radar,
+        LineChart,
+        Line,
         ...Object.values(LucideIcons)
       );
 
