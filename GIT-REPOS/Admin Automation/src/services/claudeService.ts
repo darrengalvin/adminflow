@@ -144,20 +144,17 @@ export class ClaudeService {
       hasApiKey: !!CLAUDE_API_KEY
     });
     
-    const prompt = `You are an expert automation consultant. Create a comprehensive implementation guide for this workflow automation project.
+    const prompt = `Create an implementation guide for automating this workflow: ${workflowData.workflowName}
 
-WORKFLOW TO AUTOMATE:
-- Process Name: ${workflowData.workflowName}
-- Description: ${workflowData.workflowDescription}
-- Steps to Automate: ${workflowData.steps.map((step, index) => `${index + 1}. ${step.name} (${step.type})`).join(', ')}
+Steps: ${workflowData.steps.map((step, index) => `${index + 1}. ${step.name}`).join(', ')}
 
-Please provide a detailed implementation guide in this EXACT JSON format (return only valid JSON, no markdown):
+Return ONLY valid JSON in this format:
 
 {
   "executiveSummary": {
     "title": "Executive Summary",
-    "overview": "Brief overview of automation opportunity and business impact",
-    "keyBenefits": ["Benefit 1", "Benefit 2", "Benefit 3", "Benefit 4", "Benefit 5"],
+    "overview": "Automation overview for ${workflowData.workflowName}",
+    "keyBenefits": ["Time savings", "Reduced errors", "Improved efficiency", "Cost reduction"],
     "roiMetrics": {
       "annualHoursSaved": 200,
       "annualValue": "£5,000",
@@ -167,49 +164,42 @@ Please provide a detailed implementation guide in this EXACT JSON format (return
   },
   "technicalSpecification": {
     "title": "Technical Implementation",
-    "automationType": "API Integration with AI Processing",
-    "requiredTechnologies": ["Technology 1", "Technology 2", "Technology 3"],
+    "automationType": "API Integration",
+    "requiredTechnologies": ["REST APIs", "Authentication", "Data Processing"],
     "apiConnections": [
       {
-        "name": "Primary API",
-        "purpose": "Main automation endpoint",
-        "endpoint": "https://api.example.com/v1/endpoint",
+        "name": "Main API",
+        "purpose": "Process automation",
+        "endpoint": "https://api.example.com/v1/process",
         "method": "POST",
         "authentication": "Bearer Token",
-        "sampleRequest": {"input": "sample"},
-        "sampleResponse": {"output": "result"}
+        "sampleRequest": {"data": "input"},
+        "sampleResponse": {"result": "output"}
       }
     ],
-    "architectureOverview": "High-level system architecture description"
+    "architectureOverview": "Modern API-based automation system"
   },
   "implementationPlan": {
-    "title": "Implementation Roadmap",
+    "title": "Implementation Plan",
     "phases": [
       {
-        "phase": "Phase 1: Setup",
+        "phase": "Setup",
         "duration": "Week 1",
-        "description": "Initial setup and configuration",
-        "tasks": ["Task 1", "Task 2", "Task 3"],
-        "deliverables": ["Deliverable 1", "Deliverable 2"]
-      },
-      {
-        "phase": "Phase 2: Development",
-        "duration": "Week 2-3",
-        "description": "Core development and integration",
-        "tasks": ["Task 1", "Task 2", "Task 3"],
-        "deliverables": ["Deliverable 1", "Deliverable 2"]
+        "description": "Initial configuration",
+        "tasks": ["API setup", "Authentication", "Testing"],
+        "deliverables": ["Working API", "Test results"]
       }
     ],
     "totalTimeline": "2-4 weeks",
-    "criticalPath": ["Critical item 1", "Critical item 2"]
+    "criticalPath": ["API setup", "Integration", "Testing"]
   },
   "resourceRequirements": {
-    "title": "Resource Requirements",
-    "technicalRequirements": ["Requirement 1", "Requirement 2", "Requirement 3"],
+    "title": "Resources Needed",
+    "technicalRequirements": ["API access", "Development environment", "Testing tools"],
     "teamRequirements": [
       {
         "role": "Developer",
-        "responsibilities": ["Responsibility 1", "Responsibility 2"],
+        "responsibilities": ["API integration", "Testing"],
         "timeCommitment": "2-3 weeks"
       }
     ],
@@ -223,38 +213,36 @@ Please provide a detailed implementation guide in this EXACT JSON format (return
     "title": "Success Metrics",
     "kpis": [
       {
-        "metric": "Time saved per process",
+        "metric": "Time saved",
         "target": "4+ hours",
-        "measurementMethod": "Before/after comparison"
+        "measurementMethod": "Before/after tracking"
       }
     ],
-    "monitoringApproach": "Continuous monitoring with dashboards",
-    "reportingFrequency": "Weekly progress reports"
+    "monitoringApproach": "Dashboard monitoring",
+    "reportingFrequency": "Weekly reports"
   },
   "riskAssessment": {
     "title": "Risk Assessment",
     "risks": [
       {
-        "risk": "API integration challenges",
+        "risk": "Integration issues",
         "impact": "Medium",
         "probability": "Low",
-        "mitigation": "Thorough testing and fallback procedures"
+        "mitigation": "Thorough testing"
       }
     ],
-    "contingencyPlans": ["Plan A", "Plan B"]
+    "contingencyPlans": ["Backup solution", "Manual fallback"]
   },
   "codeExamples": [
     {
-      "title": "Basic API Integration",
+      "title": "API Call Example",
       "language": "javascript",
-      "description": "Example API call for automation",
-      "code": "const response = await fetch('/api/automate', { method: 'POST', body: JSON.stringify(data) });",
-      "explanation": "This code demonstrates the basic API integration pattern"
+      "description": "Basic automation call",
+      "code": "fetch('/api/automate', {method: 'POST', body: JSON.stringify(data)})",
+      "explanation": "Simple API integration example"
     }
   ]
-}
-
-Focus on practical, implementable solutions with realistic timelines and costs.`;
+}`;
 
     try {
       console.log('📡 Sending prompt to Claude API...');

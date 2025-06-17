@@ -43,6 +43,22 @@ export default async function handler(req, res) {
 
     // Make request to Claude API
     console.log('🤖 Making PDF report request to Claude API with model: claude-3-5-sonnet-20241022');
+    console.log('📝 Prompt length:', prompt.length, 'characters');
+    console.log('📋 Prompt preview:', prompt.substring(0, 200) + '...');
+    
+    const requestBody = {
+      model: 'claude-3-5-sonnet-20241022', // Using the most capable available model
+      max_tokens: 4000, // Reduced to match working task analysis
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    };
+    
+    console.log('📤 Request body:', JSON.stringify(requestBody, null, 2).substring(0, 500) + '...');
+    
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -50,25 +66,30 @@ export default async function handler(req, res) {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 64000, // Large token limit for comprehensive reports
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
+      body: JSON.stringify(requestBody)
     });
 
     console.log('📡 Claude API response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('❌ Claude API error:', response.status, errorData);
+      console.error('❌ Claude API error details:');
+      console.error('Status:', response.status);
+      console.error('Status Text:', response.statusText);
+      console.error('Error Data:', errorData);
+      console.error('Request headers:', response.headers);
+      
+      // Try to parse error for more details
+      try {
+        const parsedError = JSON.parse(errorData);
+        console.error('Parsed error:', parsedError);
+      } catch (e) {
+        console.error('Could not parse error as JSON');
+      }
+      
       return res.status(500).json({ 
         error: `Claude API error: ${response.status}`,
+        details: errorData,
         success: false,
         source: 'fallback'
       });
