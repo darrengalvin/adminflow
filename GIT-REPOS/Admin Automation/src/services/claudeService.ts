@@ -144,133 +144,117 @@ export class ClaudeService {
       hasApiKey: !!CLAUDE_API_KEY
     });
     
-    const prompt = `You are a Fortune 500 business automation consultant with 15+ years of experience implementing enterprise automation solutions. Your expertise includes ROI analysis, technical architecture, and strategic implementation planning.
+    const prompt = `You are an expert automation consultant. Create a comprehensive implementation guide for this workflow automation project.
 
-BUSINESS CONTEXT:
-You are creating a professional implementation guide for a client seeking to automate their workflow. This document will be presented to C-level executives and technical teams, so it must be comprehensive, data-driven, and actionable.
+WORKFLOW TO AUTOMATE:
+- Process Name: ${workflowData.workflowName}
+- Description: ${workflowData.workflowDescription}
+- Steps to Automate: ${workflowData.steps.map((step, index) => `${index + 1}. ${step.name} (${step.type})`).join(', ')}
 
-WORKFLOW TO ANALYZE:
-• Business Process: ${workflowData.workflowName}
-• Current State: ${workflowData.workflowDescription}
-• Automation Scope: ${workflowData.steps.map((step, index) => `${index + 1}. ${step.name}${step.description ? ` - ${step.description}` : ''} (${step.type})`).join('\n')}
-
-DELIVERABLE REQUIREMENTS:
-Create a PROFESSIONAL, ENTERPRISE-GRADE implementation guide with:
-
-1. EXECUTIVE SUMMARY - Clear business case with measurable ROI
-2. TECHNICAL ARCHITECTURE - Production-ready system design with APIs
-3. IMPLEMENTATION ROADMAP - Detailed project timeline with milestones
-4. RESOURCE PLANNING - Team structure and budget allocation
-5. SUCCESS METRICS - KPIs and performance indicators
-6. RISK MANAGEMENT - Comprehensive risk assessment with mitigation
-7. CODE EXAMPLES - Production-quality implementation samples
-
-QUALITY STANDARDS:
-- Use industry-standard ROI calculations and benchmarks
-- Include realistic timelines based on actual project experience
-- Provide specific technical details and API specifications
-- Use professional language appropriate for executive presentation
-- Include measurable success metrics and KPIs
-- Address common implementation challenges and solutions
-
-CRITICAL: Respond ONLY with valid JSON in this exact format (no markdown, no comments):
+Please provide a detailed implementation guide in this EXACT JSON format (return only valid JSON, no markdown):
 
 {
   "executiveSummary": {
     "title": "Executive Summary",
-    "overview": "Comprehensive overview of the automation opportunity and business impact",
-    "keyBenefits": ["List of 5-7 key business benefits"],
+    "overview": "Brief overview of automation opportunity and business impact",
+    "keyBenefits": ["Benefit 1", "Benefit 2", "Benefit 3", "Benefit 4", "Benefit 5"],
     "roiMetrics": {
-      "annualHoursSaved": 156,
-      "annualValue": "£3,900",
-      "efficiencyGain": "70%",
-      "setupTime": "3-5 days"
+      "annualHoursSaved": 200,
+      "annualValue": "£5,000",
+      "efficiencyGain": "75%",
+      "setupTime": "2-4 weeks"
     }
   },
   "technicalSpecification": {
-    "title": "Technical Implementation Specification",
+    "title": "Technical Implementation",
     "automationType": "API Integration with AI Processing",
-    "requiredTechnologies": ["List of required technologies"],
+    "requiredTechnologies": ["Technology 1", "Technology 2", "Technology 3"],
     "apiConnections": [
       {
-        "name": "Primary API Name",
-        "purpose": "What this API does",
-        "endpoint": "https://api.example.com/v1/resource",
+        "name": "Primary API",
+        "purpose": "Main automation endpoint",
+        "endpoint": "https://api.example.com/v1/endpoint",
         "method": "POST",
-        "authentication": "Bearer Token (OAuth 2.0)",
-        "sampleRequest": {"key": "sample request payload"},
-        "sampleResponse": {"key": "sample response payload"}
+        "authentication": "Bearer Token",
+        "sampleRequest": {"input": "sample"},
+        "sampleResponse": {"output": "result"}
       }
     ],
-    "architectureOverview": "Detailed explanation of system architecture"
+    "architectureOverview": "High-level system architecture description"
   },
   "implementationPlan": {
-    "title": "Implementation Timeline & Milestones",
+    "title": "Implementation Roadmap",
     "phases": [
       {
-        "phase": "Phase 1: API Setup & Authentication",
-        "duration": "Day 1",
-        "description": "Phase description",
-        "tasks": ["List of specific tasks"],
-        "deliverables": ["List of deliverables"]
+        "phase": "Phase 1: Setup",
+        "duration": "Week 1",
+        "description": "Initial setup and configuration",
+        "tasks": ["Task 1", "Task 2", "Task 3"],
+        "deliverables": ["Deliverable 1", "Deliverable 2"]
+      },
+      {
+        "phase": "Phase 2: Development",
+        "duration": "Week 2-3",
+        "description": "Core development and integration",
+        "tasks": ["Task 1", "Task 2", "Task 3"],
+        "deliverables": ["Deliverable 1", "Deliverable 2"]
       }
     ],
-    "totalTimeline": "3-5 days",
-    "criticalPath": ["List of critical path items"]
+    "totalTimeline": "2-4 weeks",
+    "criticalPath": ["Critical item 1", "Critical item 2"]
   },
   "resourceRequirements": {
-    "title": "Resource Requirements & Prerequisites",
-    "technicalRequirements": ["List of technical requirements"],
+    "title": "Resource Requirements",
+    "technicalRequirements": ["Requirement 1", "Requirement 2", "Requirement 3"],
     "teamRequirements": [
       {
         "role": "Developer",
-        "responsibilities": ["List of responsibilities"],
-        "timeCommitment": "3-5 days"
+        "responsibilities": ["Responsibility 1", "Responsibility 2"],
+        "timeCommitment": "2-3 weeks"
       }
     ],
     "budgetEstimate": {
-      "developmentCost": "£2,000-£5,000",
-      "ongoingCosts": "£50-200/month",
-      "roiBreakeven": "2-3 months"
+      "developmentCost": "£3,000-£8,000",
+      "ongoingCosts": "£100-300/month",
+      "roiBreakeven": "3-6 months"
     }
   },
   "successMetrics": {
-    "title": "Success Metrics & KPIs",
+    "title": "Success Metrics",
     "kpis": [
       {
-        "metric": "Time saved per task",
-        "target": "3+ hours",
-        "measurementMethod": "Before/after time tracking"
+        "metric": "Time saved per process",
+        "target": "4+ hours",
+        "measurementMethod": "Before/after comparison"
       }
     ],
-    "monitoringApproach": "Continuous monitoring approach",
-    "reportingFrequency": "Weekly/Monthly reporting schedule"
+    "monitoringApproach": "Continuous monitoring with dashboards",
+    "reportingFrequency": "Weekly progress reports"
   },
   "riskAssessment": {
-    "title": "Risk Assessment & Mitigation",
+    "title": "Risk Assessment",
     "risks": [
       {
-        "risk": "API downtime or rate limiting",
-        "impact": "High",
-        "probability": "Medium",
-        "mitigation": "Implement retry logic and backup solutions"
+        "risk": "API integration challenges",
+        "impact": "Medium",
+        "probability": "Low",
+        "mitigation": "Thorough testing and fallback procedures"
       }
     ],
-    "contingencyPlans": ["List of contingency plans"]
+    "contingencyPlans": ["Plan A", "Plan B"]
   },
   "codeExamples": [
     {
-      "title": "API Authentication Setup",
+      "title": "Basic API Integration",
       "language": "javascript",
-      "description": "Code example description",
-      "code": "// Actual code example",
-      "explanation": "Detailed explanation of the code"
+      "description": "Example API call for automation",
+      "code": "const response = await fetch('/api/automate', { method: 'POST', body: JSON.stringify(data) });",
+      "explanation": "This code demonstrates the basic API integration pattern"
     }
   ]
 }
 
-Make this professional, comprehensive, and tailored to the specific workflow. Include realistic metrics, practical implementation details, and actionable code examples. Focus on creating value for both technical and business stakeholders.
-`;
+Focus on practical, implementable solutions with realistic timelines and costs.`;
 
     try {
       console.log('📡 Sending prompt to Claude API...');
