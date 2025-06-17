@@ -128,15 +128,29 @@ Generate the complete React component now:`;
         preview: aiResponse.substring(0, 200) + '...'
       });
       
-      // Extract the React component code
-      const componentMatch = aiResponse.match(/import[\s\S]*?export default \w+;?/);
-      if (!componentMatch) {
-        console.error('❌ No valid React component found in Claude response');
-        console.error('Response preview:', aiResponse.substring(0, 1000));
-        throw new Error('Invalid React component format from Claude API');
+      // Extract the React component code - improved extraction
+      let componentCode = aiResponse;
+      
+      // Remove any markdown code blocks if present
+      if (componentCode.includes('```')) {
+        const codeBlockMatch = componentCode.match(/```(?:jsx?|typescript|tsx?)?\s*([\s\S]*?)\s*```/);
+        if (codeBlockMatch) {
+          componentCode = codeBlockMatch[1];
+        }
       }
       
-      const componentCode = componentMatch[0];
+      // Validate that we have a proper React component
+      const hasImport = componentCode.includes('import React') || componentCode.includes('import {');
+      const hasExport = componentCode.includes('export default') || componentCode.includes('export {');
+      const hasComponent = componentCode.includes('function ') || componentCode.includes('const ') || componentCode.includes('=>');
+      
+      if (!hasImport || !hasComponent) {
+        console.error('❌ Invalid React component structure in Claude response');
+        console.error('Has import:', hasImport);
+        console.error('Has component:', hasComponent);
+        console.error('Response preview:', componentCode.substring(0, 1000));
+        throw new Error('Invalid React component format from Claude API');
+      }
       
       console.log('🎯 Successfully extracted REAL Claude React component for:', workflowData.workflowName);
       return {

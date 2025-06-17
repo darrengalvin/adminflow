@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import * as LucideIcons from 'lucide-react';
 import { AIGeneratedReport } from '../../services/claudeService';
 
@@ -24,58 +24,98 @@ export const DynamicReportRenderer: React.FC<DynamicReportRendererProps> = ({
         .replace(/\n?```$/, '')
         .trim();
 
+      console.log('🔧 Processing Claude component code:', cleanCode.substring(0, 200) + '...');
+
+      // Find the component function/const declaration
+      let componentMatch = cleanCode.match(/(?:const|function)\s+(\w+)\s*[=\(]/);
+      let componentName = componentMatch?.[1];
+
+      // If no match, try to find export default
+      if (!componentName) {
+        componentMatch = cleanCode.match(/export\s+default\s+(?:function\s+)?(\w+)/);
+        componentName = componentMatch?.[1];
+      }
+
+      // If still no match, try arrow function pattern
+      if (!componentName) {
+        componentMatch = cleanCode.match(/const\s+(\w+)\s*=\s*\(\s*\)\s*=>/);
+        componentName = componentMatch?.[1];
+      }
+
+      if (!componentName) {
+        console.error('❌ Could not extract component name from:', cleanCode.substring(0, 500));
+        throw new Error('Could not identify component name in generated code');
+      }
+
+      console.log('✅ Found component name:', componentName);
+
       // Create a safe execution environment with all necessary imports
+      // Use different variable names to avoid conflicts
       const createComponent = new Function(
         'React',
-        'useState',
-        'useEffect',
-        'useMemo',
+        'ReactHooks',
         'PieChart',
         'Pie', 
         'Cell',
         'AreaChart',
         'Area',
+        'BarChart',
+        'Bar',
         'XAxis',
         'YAxis',
         'CartesianGrid',
         'Tooltip',
         'ResponsiveContainer',
-        'BarChart',
-        'Bar',
+        'RadarChart',
+        'PolarGrid',
+        'PolarAngleAxis',
+        'PolarRadiusAxis',
+        'Radar',
         ...Object.keys(LucideIcons),
         `
-        const { useState, useEffect, useMemo } = React;
+        // Extract React hooks with different names to avoid conflicts
+        const { useState: useReactState, useEffect: useReactEffect, useMemo: useReactMemo } = ReactHooks;
         
-        ${cleanCode}
+        // Replace useState with useReactState in the code to avoid conflicts
+        const processedCode = \`${cleanCode.replace(/useState/g, 'useReactState').replace(/useEffect/g, 'useReactEffect').replace(/useMemo/g, 'useReactMemo')}\`;
         
-        return ${cleanCode.match(/export default function (\w+)/)?.[1] || 'DefaultComponent'};
+        // Execute the processed code
+        eval(processedCode);
+        
+        // Return the component
+        return ${componentName};
         `
       );
 
       // Execute the function with all dependencies
       const ComponentClass = createComponent(
         React,
-        React.useState,
-        React.useEffect,
-        React.useMemo,
+        { useState: React.useState, useEffect: React.useEffect, useMemo: React.useMemo },
         PieChart,
         Pie,
         Cell,
         AreaChart,
         Area,
+        BarChart,
+        Bar,
         XAxis,
         YAxis,
         CartesianGrid,
         Tooltip,
         ResponsiveContainer,
-        BarChart,
-        Bar,
+        RadarChart,
+        PolarGrid,
+        PolarAngleAxis,
+        PolarRadiusAxis,
+        Radar,
         ...Object.values(LucideIcons)
       );
 
+      console.log('🎯 Successfully created dynamic component:', componentName);
       return ComponentClass;
     } catch (err) {
-      console.error('Error creating dynamic component:', err);
+      console.error('❌ Error creating dynamic component:', err);
+      console.error('Component code preview:', report.componentCode.substring(0, 1000));
       setError(`Failed to render AI-generated component: ${err.message}`);
       return null;
     }
