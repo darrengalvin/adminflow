@@ -95,38 +95,43 @@ export interface AIGeneratedContent {
 
 export class ClaudeService {
   private async callClaude(prompt: string): Promise<string> {
-    if (!CLAUDE_API_KEY) {
-      throw new Error('Claude API key not configured. Please set VITE_CLAUDE_API_KEY in your environment variables.');
-    }
-
+    console.log('🔄 Creating dedicated PDF report API call...');
+    
     try {
-      const response = await fetch(CLAUDE_API_URL, {
+      // Create a new proxy API call specifically for PDF reports
+      const response = await fetch('/api/claude-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': CLAUDE_API_KEY,
-          'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022', // Using Claude 3.5 Sonnet - the most capable available model
-          max_tokens: 64000, // Increased for comprehensive content generation
-          messages: [
-            {
-              role: 'user',
-              content: prompt
-            }
-          ]
+          prompt: prompt,
+          reportType: 'implementation-guide'
         })
       });
 
+      console.log('📡 PDF API response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('❌ PDF API error:', errorData);
+        throw new Error(`PDF API error: ${response.status} - ${errorData.error || 'Unknown error'}`);
       }
 
       const data = await response.json();
-      return data.content[0].text;
+      console.log('✅ PDF API response received:', { 
+        success: data.success, 
+        source: data.source || 'api',
+        hasContent: !!data.content 
+      });
+
+      if (data.success && data.content) {
+        return data.content;
+      } else {
+        throw new Error('Invalid response format from PDF API');
+      }
     } catch (error) {
-      console.error('Error calling Claude API:', error);
+      console.error('❌ Error calling PDF API:', error);
       throw error;
     }
   }
