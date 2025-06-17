@@ -108,7 +108,7 @@ export class ClaudeService {
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-opus-4-20250514', // Using Claude 4 Opus - the most capable model with superior reasoning
+          model: 'claude-3-5-sonnet-20241022', // Using Claude 3.5 Sonnet - the most capable available model
           max_tokens: 64000, // Increased for comprehensive content generation
           messages: [
             {
@@ -132,7 +132,12 @@ export class ClaudeService {
   }
 
   async generateImplementationGuide(workflowData: WorkflowAnalysisRequest): Promise<AIGeneratedContent> {
-    console.log('🤖 Making API call to Claude 4 Opus...');
+    console.log('🤖 Making REAL API call to Claude 3.5 Sonnet for report generation...');
+    console.log('📊 Workflow data:', { 
+      name: workflowData.workflowName, 
+      steps: workflowData.steps.length,
+      hasApiKey: !!CLAUDE_API_KEY
+    });
     
     const prompt = `You are a Fortune 500 business automation consultant with 15+ years of experience implementing enterprise automation solutions. Your expertise includes ROI analysis, technical architecture, and strategic implementation planning.
 
@@ -263,18 +268,25 @@ Make this professional, comprehensive, and tailored to the specific workflow. In
 `;
 
     try {
+      console.log('📡 Sending prompt to Claude API...');
       const aiResponse = await this.callClaude(prompt);
+      console.log('✅ Got response from Claude API:', { 
+        responseLength: aiResponse.length,
+        preview: aiResponse.substring(0, 100) + '...'
+      });
       
       // Parse the JSON response
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
+        console.error('❌ No JSON found in Claude response');
         throw new Error('Invalid response format from Claude API');
       }
       
       const parsedResponse = JSON.parse(jsonMatch[0]);
+      console.log('🎯 Successfully parsed REAL Claude response for:', workflowData.workflowName);
       return parsedResponse as AIGeneratedContent;
     } catch (error) {
-      console.error('Error generating implementation guide:', error);
+      console.error('❌ FAILED to get real Claude response, using fallback:', error);
       
       // Fallback to a basic structure if API fails
       return this.getFallbackContent(workflowData);
