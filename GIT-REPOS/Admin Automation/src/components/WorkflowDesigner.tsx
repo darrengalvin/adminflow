@@ -115,7 +115,9 @@ export function WorkflowDesigner({ onNavigateToAnalysis, onWorkflowSave, onWorkf
         icon: '🤖',
         trigger: 'Manual trigger',
         condition: 'Always run this step',
-        waitTime: '0 seconds'
+        waitTime: '0 seconds',
+        // Include the full AI analysis for use in WorkflowDetails
+        aiAnalysis: task.aiSuggestion
       }
     }));
 
