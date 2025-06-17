@@ -49,6 +49,8 @@ app.post('/api/claude', async (req, res) => {
 
 CONTEXT: This analysis is for building a custom workflow step in a proprietary automation platform. Focus on the technical implementation details, specific APIs, data flows, and code-level requirements.
 
+CRITICAL: This is an AI-POWERED automation system. For every task, you MUST explain what AI will do with the data - how AI will process, enhance, analyze, or make decisions with the information. AI is not just connecting APIs, it's adding intelligence to the process.
+
 TASK DETAILS:
 - Task Name: ${taskData.taskName}
 - Description: ${taskData.description}
@@ -63,22 +65,29 @@ Please provide a comprehensive analysis in this EXACT JSON format (return only v
   "taskName": "Automate: ${taskData.taskName}",
   "description": "AI-powered automation to eliminate manual ${taskData.taskName.toLowerCase()} process",
   "userFriendlyExplanation": {
-    "goodNews": "Brief exciting explanation of why this is automatable as a custom workflow step",
+    "goodNews": "Brief exciting explanation of why this is automatable as a custom workflow step with AI enhancement",
     "whatIsAPI": "Simple explanation of what APIs are needed for this custom implementation",
-    "howItWorks": "Technical step-by-step explanation of how this workflow step would execute",
-    "whatYouNeed": "Specific technical requirements: APIs, authentication, data formats, etc.",
+    "howItWorks": "Technical step-by-step explanation of how this workflow step would execute, emphasizing AI processing",
+    "whatYouNeed": "Specific technical requirements: APIs, authentication, data formats, AI models, etc.",
+    "aiProcessing": {
+      "inputProcessing": "How AI will analyze and process the incoming data",
+      "smartDecisions": "What intelligent decisions AI will make during processing",
+      "dataEnhancement": "How AI will enrich, validate, or improve the data",
+      "continuousLearning": "How the AI will learn and improve over time"
+    },
     "endpoints": [
       {
         "name": "Specific API endpoint name",
         "endpoint": "Actual API URL and method",
         "purpose": "What this endpoint does in the workflow",
         "whatItDoes": "Technical details of the API call and data handling",
-        "authentication": "Required auth method",
+        "authentication": "Required auth method (Bearer Token, API Key, OAuth, etc.)",
         "inputData": "What data this step needs as input",
-        "outputData": "What data this step produces as output"
+        "outputData": "What data this step produces as output",
+        "aiEnhancement": "How AI processes the data from this endpoint"
       }
     ],
-    "nextSteps": "Technical implementation steps for building this workflow step"
+    "nextSteps": "Technical implementation steps for building this AI-enhanced workflow step"
   },
   "currentProcess": {
     "software": "${taskData.software}",
@@ -87,41 +96,63 @@ Please provide a comprehensive analysis in this EXACT JSON format (return only v
     "alternativeUse": "${taskData.alternatives}"
   },
   "automation": {
-    "type": "Type of custom workflow step (API Integration, Document Processing, etc.)",
-    "apiConnections": ["List of specific APIs this workflow step will call"],
-    "aiCapabilities": ["List of AI/ML features needed for this step"],
-    "technicalRequirements": ["Programming languages, libraries, infrastructure needed"]
+    "type": "AI-Enhanced Custom Workflow Step",
+    "apiConnections": ["List of specific APIs that will be integrated"],
+    "aiCapabilities": [
+      "Specific AI processing capabilities for this task",
+      "Machine learning features that will be applied",  
+      "Natural language processing if applicable",
+      "Pattern recognition and anomaly detection",
+      "Predictive analytics if relevant"
+    ],
+    "integrations": ["Custom API development", "AI/ML processing pipeline", "Database integrations", "Real-time monitoring"]
   },
   "impact": {
     "annualHoursSaved": ${savings},
     "monthlyHoursSaved": ${Math.round(timePerWeek * 4 * 0.7)},
     "valuePerYear": "£${savings * 25}",
-    "efficiencyGain": "70%"
+    "efficiencyGain": "70%",
+    "aiAdvantages": [
+      "Specific advantages AI brings to this process",
+      "Quality improvements through AI processing",
+      "Error reduction through intelligent validation"
+    ]
   },
   "implementation": {
-    "setupTime": "Development time estimate for this workflow step",
+    "setupTime": "Realistic time estimate for implementation including AI training",
     "difficulty": "Easy/Medium/Hard",
-    "steps": ["Technical implementation steps for building this workflow step"],
-    "nextActions": ["Immediate development tasks"],
-    "codeRequirements": {
-      "inputSchema": "JSON schema for input data this step expects",
-      "outputSchema": "JSON schema for output data this step produces",
-      "errorHandling": "How to handle failures and edge cases",
-      "dependencies": ["Required libraries, APIs, services"]
+    "steps": [
+      "Step 1: API integration setup",
+      "Step 2: AI model configuration", 
+      "Step 3: Data pipeline creation",
+      "Step 4: AI training and testing",
+      "Step 5: Production deployment",
+      "Step 6: Monitoring and optimization"
+    ],
+    "nextActions": [
+      "Immediate action items for getting started",
+      "AI/ML requirements assessment",
+      "Data preparation needs"
+    ],
+    "technicalRequirements": {
+      "apis": ["Specific API endpoints needed"],
+      "aiModels": ["AI models or services required"],
+      "dataStorage": "Data storage requirements",
+      "computing": "Processing power needs for AI"
     }
   }
 }
 
 Focus on:
-1. REAL, specific APIs and endpoints that this workflow step will call
-2. Technical implementation details for custom development
-3. Input/output data schemas and formats
-4. Authentication and security requirements
-5. Error handling and edge cases
-6. NO mentions of Make.com, Zapier, or other third-party automation platforms
-7. This is for building a custom workflow step from scratch
+1. REAL, specific APIs and endpoints where possible
+2. Detailed explanation of AI processing and intelligence
+3. Practical, implementable solutions with AI enhancement
+4. Clear business value and time savings through AI
+5. Specific next steps the user can take
+6. How AI makes this automation smarter than simple API connections
+7. Accurate technical requirements including AI/ML components
 
-Be precise about technical requirements and provide actionable development guidance.`;
+Be precise about which software integrations are actually possible and provide realistic implementation guidance that emphasizes the AI-powered nature of the automation.`;
 
     // Make REAL request to Claude API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
