@@ -1011,20 +1011,33 @@ export const config = {
     setIsGeneratingPDF(true);
     
     try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 20;
-      const contentWidth = pageWidth - (margin * 2);
-      let yPosition = margin;
-
-      // Helper function to add new page if needed
-      const checkPageSpace = (requiredSpace: number) => {
-        if (yPosition + requiredSpace > pageHeight - margin) {
-          pdf.addPage();
-          yPosition = margin;
-        }
+      console.log('🚀 Starting AI-powered PDF generation...');
+      
+      // Import the advanced PDF generator
+      const { AdvancedPDFGenerator } = await import('../services/advancedPdfGenerator');
+      
+      // Create workflow data for AI analysis
+      const workflowData = {
+        workflowName: workflow.name,
+        workflowDescription: workflow.description || 'Advanced automation workflow for enhanced business efficiency',
+        steps: workflow.steps.map(step => ({
+          name: step.name,
+          description: step.description,
+          type: step.type
+        }))
       };
+      
+      // Generate comprehensive AI-powered PDF
+      const pdfGenerator = new AdvancedPDFGenerator({
+        includeCodeExamples: true,
+        includeArchitectureDiagrams: true,
+        colorScheme: 'professional',
+        documentTemplate: 'comprehensive'
+      });
+      
+      await pdfGenerator.generateComprehensiveGuide(workflowData);
+      
+      console.log('✅ AI-powered implementation guide generated successfully!');
 
       // Helper function to add text with word wrap
       const addText = (text: string, fontSize: number, isBold: boolean = false, color: string = '#000000') => {
@@ -1359,8 +1372,8 @@ export const config = {
       pdf.save(fileName);
       
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
+      console.error('❌ Error generating AI-powered PDF:', error);
+      alert('🚫 Failed to generate AI-powered implementation guide. Please check your Claude API configuration and try again.');
     } finally {
       setIsGeneratingPDF(false);
     }
