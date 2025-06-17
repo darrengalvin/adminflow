@@ -101,6 +101,12 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
 
   // Save task analysis to history
   const saveTaskToHistory = (taskData: any) => {
+    // Safely extract values and ensure correct types
+    const timeSpent = taskData.currentProcess?.timePerWeek;
+    const software = taskData.currentProcess?.software;
+    const annualValue = taskData.impact?.valuePerYear;
+    const monthlyHours = taskData.impact?.monthlyHoursSaved;
+    
     const historyItem = {
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
@@ -108,10 +114,10 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
       description: taskData.description || '',
       analysis: taskData,
       summary: {
-        timeSpent: taskData.currentProcess?.timePerWeek || 'Unknown',
-        software: taskData.currentProcess?.software || 'Unknown',
-        annualValue: taskData.impact?.valuePerYear || 0,
-        monthlyHours: taskData.impact?.monthlyHoursSaved || 0
+        timeSpent: typeof timeSpent === 'string' ? timeSpent : 'Unknown',
+        software: typeof software === 'string' ? software : 'Unknown',
+        annualValue: typeof annualValue === 'number' ? annualValue : (typeof annualValue === 'string' ? parseFloat(annualValue.replace(/[^0-9.-]/g, '')) || 0 : 0),
+        monthlyHours: typeof monthlyHours === 'number' ? monthlyHours : (typeof monthlyHours === 'string' ? parseFloat(monthlyHours.replace(/[^0-9.-]/g, '')) || 0 : 0)
       }
     };
 
@@ -1163,11 +1169,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
                             <div className="flex-1">
                               <h4 className="font-medium text-slate-900 mb-1">{item.taskName}</h4>
                               <p className="text-sm text-slate-600 mb-2 line-clamp-2">{item.description}</p>
-                              <div className="flex items-center space-x-4 text-xs text-slate-500">
-                                <span>{new Date(item.timestamp).toLocaleDateString()}</span>
-                                <span>• {item.summary.timeSpent}</span>
-                                <span>• {formatCurrency(item.summary.annualValue)}</span>
-                              </div>
+                                                          <div className="flex items-center space-x-4 text-xs text-slate-500">
+                              <span>{new Date(item.timestamp).toLocaleDateString()}</span>
+                              <span>• {typeof item.summary.timeSpent === 'string' ? item.summary.timeSpent : 'Unknown'}</span>
+                              <span>• {formatCurrency(typeof item.summary.annualValue === 'number' ? item.summary.annualValue : 0)}</span>
+                            </div>
                             </div>
                             <FileText className="h-4 w-4 text-slate-400 ml-3" />
                           </div>
@@ -1495,8 +1501,8 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
                             <p className="text-sm text-slate-600 mb-2 line-clamp-2">{item.description}</p>
                             <div className="flex items-center space-x-4 text-xs text-slate-500">
                               <span>{new Date(item.timestamp).toLocaleDateString()}</span>
-                              <span>• {item.summary.timeSpent}</span>
-                              <span>• {formatCurrency(item.summary.annualValue)}</span>
+                              <span>• {typeof item.summary.timeSpent === 'string' ? item.summary.timeSpent : 'Unknown'}</span>
+                              <span>• {formatCurrency(typeof item.summary.annualValue === 'number' ? item.summary.annualValue : 0)}</span>
                             </div>
                           </div>
                           <FileText className="h-4 w-4 text-slate-400 ml-3" />
