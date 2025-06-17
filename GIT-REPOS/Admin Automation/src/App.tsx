@@ -11,6 +11,7 @@ import { APIIntegrations } from './components/APIIntegrations';
 import { SystemLogs } from './components/SystemLogs';
 import TaskAnalysis from './components/TaskAnalysis';
 import { Showcase } from './components/Showcase';
+import { Reports } from './components/Reports';
 import { workflowEngine } from './services/workflowEngine';
 import { 
   mockWorkflows, 
@@ -170,6 +171,8 @@ function App() {
             onWorkflowExecute={handleWorkflowExecute}
           />
         );
+      case 'reports':
+        return <Reports />;
       case 'integrations':
         return <APIIntegrations integrations={mockAPIIntegrations} />;
       case 'logs':

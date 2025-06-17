@@ -8,7 +8,8 @@ import {
   X,
   Monitor,
   Settings,
-  Award
+  Award,
+  FileText
 } from 'lucide-react';
 
 interface MobileNavigationProps {
@@ -30,6 +31,7 @@ export function MobileNavigation({ currentSection, onNavigate }: MobileNavigatio
     { id: 'home', label: 'Home', icon: Home },
     { id: 'analyze', label: 'AI Task Analyser', icon: Brain },
     { id: 'workflows', label: 'Workflow Designer', icon: Zap },
+    { id: 'reports', label: 'AI Reports', icon: FileText },
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'monitor', label: 'Monitor', icon: Monitor },
     { id: 'integrations', label: 'Integrations', icon: Settings },

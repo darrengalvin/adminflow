@@ -5,7 +5,8 @@ import {
   Zap, 
   Settings, 
   Sparkles,
-  Award
+  Award,
+  FileText
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -18,6 +19,7 @@ export function Sidebar({ currentSection, onNavigate }: SidebarProps) {
     { id: 'home', label: 'Home', icon: Home },
     { id: 'analyze', label: 'AI Task Analyser', icon: Brain },
     { id: 'workflows', label: 'Workflow Designer', icon: Zap },
+    { id: 'reports', label: 'AI Reports', icon: FileText },
     { id: 'showcase', label: 'Showcase', icon: Sparkles },
     { id: 'integrations', label: 'Integrations', icon: Settings },
   ];

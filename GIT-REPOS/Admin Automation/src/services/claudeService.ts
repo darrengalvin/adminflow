@@ -108,7 +108,7 @@ export class ClaudeService {
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', // Using Claude 4 Sonnet - the latest and most powerful model
+          model: 'claude-opus-4-20250514', // Using Claude 4 Opus - the most capable model with superior reasoning
           max_tokens: 64000, // Increased for comprehensive content generation
           messages: [
             {
@@ -132,18 +132,26 @@ export class ClaudeService {
   }
 
   async generateImplementationGuide(workflowData: WorkflowAnalysisRequest): Promise<AIGeneratedContent> {
-    const prompt = `
-You are an expert business analyst and technical consultant specializing in automation and AI implementation. Generate a comprehensive, professional implementation guide for the following workflow automation project:
+    console.log('🤖 Making API call to Claude 4 Opus...');
+    
+    const prompt = `You are an expert business automation consultant and technical architect. Analyze this workflow and generate a comprehensive, professional implementation guide.
 
-**Workflow Name:** ${workflowData.workflowName}
-**Description:** ${workflowData.workflowDescription}
+WORKFLOW ANALYSIS:
+• Name: ${workflowData.workflowName}
+• Description: ${workflowData.workflowDescription}
+• Steps: ${workflowData.steps.map((step, index) => `${index + 1}. ${step.name}${step.description ? ` - ${step.description}` : ''} (${step.type})`).join('\n')}
 
-**Workflow Steps:**
-${workflowData.steps.map((step, index) => `${index + 1}. ${step.name}${step.description ? ` - ${step.description}` : ''} (Type: ${step.type})`).join('\n')}
+REQUIREMENTS:
+Generate a professional-grade implementation guide with:
+- Realistic ROI calculations based on industry standards
+- Detailed technical architecture and API specifications  
+- Comprehensive code examples with multiple languages
+- Implementation timeline with specific phases
+- Resource requirements and budget estimates
+- Success metrics and KPIs
+- Risk assessment with mitigation strategies
 
-Create a detailed, professional implementation guide that includes realistic ROI calculations, technical specifications, API documentation, implementation timeline, resource requirements, success metrics, risk assessment, and code examples.
-
-Please provide your response in the following JSON format:
+CRITICAL: Respond ONLY with valid JSON in this exact format (no markdown, no comments):
 
 {
   "executiveSummary": {

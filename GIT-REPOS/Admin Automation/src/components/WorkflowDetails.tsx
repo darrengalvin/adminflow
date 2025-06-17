@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { ArrowLeft, Play, Pause, Square, Clock, User, Tag, CheckCircle, AlertCircle, Loader, Zap, Info, Code, ExternalLink, Copy, Send, Eye, EyeOff, Terminal, PlayCircle, FileText, Download } from 'lucide-react';
 import { Workflow } from '../types';
 import jsPDF from 'jspdf';
+import { PDFReportGenerator } from './pdf/PDFReportGenerator';
+import { ClaudeService, WorkflowAnalysisRequest, AIGeneratedContent } from '../services/claudeService';
 
 interface WorkflowDetailsProps {
   workflow: Workflow;
@@ -17,6 +19,8 @@ export function WorkflowDetails({ workflow, onBack, onExecute }: WorkflowDetails
   const [apiTestResults, setApiTestResults] = useState<{ [key: string]: any }>({});
   const [testingInProgress, setTestingInProgress] = useState<{ [key: string]: boolean }>({});
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [aiGeneratedContent, setAiGeneratedContent] = useState<AIGeneratedContent | null>(null);
+  const [isGeneratingWithAI, setIsGeneratingWithAI] = useState(false);
 
   // Safe date formatting function
   const formatDate = (dateValue: any): string => {
@@ -409,6 +413,41 @@ const processData = async (data) => {
       ...prev,
       [endpointName]: !prev[endpointName]
     }));
+  };
+
+  // NEW: AI-POWERED REACT PDF GENERATION
+  const generateAIPoweredPDF = async () => {
+    setIsGeneratingWithAI(true);
+    
+    try {
+      console.log('🤖 Starting AI-powered PDF generation...');
+      
+      // Convert workflow to Claude request format
+      const workflowAnalysisRequest: WorkflowAnalysisRequest = {
+        workflowName: workflow.name,
+        workflowDescription: workflow.description || 'Workflow automation implementation guide',
+        steps: workflow.steps.map(step => ({
+          name: step.name,
+          description: step.description,
+          type: step.type || 'automation'
+        }))
+      };
+      
+      // Call Claude API to generate content
+      const claudeService = new ClaudeService();
+      console.log('📡 Making API call to Claude 4 Opus...');
+      const aiContent = await claudeService.generateImplementationGuide(workflowAnalysisRequest);
+      console.log('✅ AI content generated successfully');
+      
+      // Store the AI-generated content for React PDF component
+      setAiGeneratedContent(aiContent);
+      
+    } catch (error) {
+      console.error('❌ Error generating AI-powered PDF:', error);
+      alert('Error generating AI content. Please check your Claude API key is configured in your .env file.');
+    } finally {
+      setIsGeneratingWithAI(false);
+    }
   };
 
   // Generate comprehensive PDF development guide
@@ -1416,6 +1455,25 @@ export const config = {
             )}
           </button>
           
+          {/* AI-Powered React PDF Button */}
+          <button
+            onClick={generateAIPoweredPDF}
+            disabled={isGeneratingWithAI}
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-400 disabled:to-purple-400 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+          >
+            {isGeneratingWithAI ? (
+              <>
+                <Loader className="h-5 w-5 animate-spin" />
+                <span>AI Generating...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-lg">🤖</span>
+                <span>Generate AI Report</span>
+              </>
+            )}
+          </button>
+
           {/* Development Guide PDF Button */}
           <button
             onClick={generateDevelopmentPDF}
@@ -2098,6 +2156,44 @@ export const config = {
           </div>
         </div>
       </div>
+
+      {/* AI-Powered React PDF Component */}
+      {aiGeneratedContent && (
+        <div className="mt-8">
+          <PDFReportGenerator 
+            content={aiGeneratedContent}
+            workflowData={{
+              workflowName: workflow.name,
+              workflowDescription: workflow.description || 'Workflow automation implementation guide',
+              steps: workflow.steps.map(step => ({
+                name: step.name,
+                description: step.description,
+                type: step.type || 'automation'
+              }))
+            }}
+            isGenerating={false}
+          />
+        </div>
+      )}
+
+      {/* Loading state for AI generation */}
+      {isGeneratingWithAI && (
+        <div className="mt-8">
+          <PDFReportGenerator 
+            content={null as any}
+            workflowData={{
+              workflowName: workflow.name,
+              workflowDescription: workflow.description || 'Workflow automation implementation guide',
+              steps: workflow.steps.map(step => ({
+                name: step.name,
+                description: step.description,
+                type: step.type || 'automation'
+              }))
+            }}
+            isGenerating={true}
+          />
+        </div>
+      )}
     </div>
   );
 }
