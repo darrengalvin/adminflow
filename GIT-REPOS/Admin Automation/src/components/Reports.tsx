@@ -201,32 +201,30 @@ export function Reports() {
   const [isGeneratingFromData, setIsGeneratingFromData] = useState(false);
   const [dataGeneratedContent, setDataGeneratedContent] = useState<AIGeneratedContent | null>(null);
 
+  // Show industry report section
+  const showIndustryReportSection = (industry: typeof sampleIndustries[0]) => {
+    setSelectedIndustry(industry.id);
+    setGeneratedContent(null); // Clear any previous content
+    setIsGeneratingReport(false);
+    
+    // Scroll to the report section
+    setTimeout(() => {
+      const reportElement = document.getElementById('report-generation-area');
+      if (reportElement) {
+        reportElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
   // Generate report from sample industry
   const generateIndustryReport = async (industry: typeof sampleIndustries[0]) => {
     setIsGeneratingReport(true);
-    setSelectedIndustry(industry.id);
     setGeneratedContent(null); // Clear previous content
-    
-    // Scroll to loading section immediately
-    setTimeout(() => {
-      const loadingElement = document.getElementById('report-generation-area');
-      if (loadingElement) {
-        loadingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
     
     try {
       const claudeService = new ClaudeService();
       const aiContent = await claudeService.generateImplementationGuide(industry.workflow);
       setGeneratedContent(aiContent);
-      
-      // Scroll to results when complete
-      setTimeout(() => {
-        const resultsElement = document.getElementById('report-results');
-        if (resultsElement) {
-          resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
     } catch (error) {
       console.error('Error generating industry report:', error);
       alert('Error generating report. Please check your Claude API key configuration.');
@@ -244,14 +242,6 @@ export function Reports() {
 
     setIsGeneratingFromData(true);
     setDataGeneratedContent(null); // Clear previous content
-    
-    // Scroll to loading section immediately
-    setTimeout(() => {
-      const loadingElement = document.getElementById('data-generation-area');
-      if (loadingElement) {
-        loadingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
     
     try {
       // Parse the data and create a workflow request
@@ -280,14 +270,6 @@ export function Reports() {
       const claudeService = new ClaudeService();
       const aiContent = await claudeService.generateImplementationGuide(workflowRequest);
       setDataGeneratedContent(aiContent);
-      
-      // Scroll to results when complete
-      setTimeout(() => {
-        const resultsElement = document.getElementById('data-results');
-        if (resultsElement) {
-          resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
     } catch (error) {
       console.error('Error generating data report:', error);
       alert('Error generating report. Please check your Claude API key configuration.');
@@ -341,7 +323,7 @@ export function Reports() {
               return (
                 <button
                   key={industry.id}
-                  onClick={() => generateIndustryReport(industry)}
+                  onClick={() => showIndustryReportSection(industry)}
                   disabled={isGeneratingReport}
                   className={`w-full p-4 rounded-lg ${colorClasses[industry.color as keyof typeof colorClasses]} text-white border-l-4 hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
@@ -450,104 +432,53 @@ Example:
         </div>
       </div>
 
-      {/* Report Generation Area */}
-      <div id="report-generation-area">
-        {/* Industry Report Generation */}
-        {isGeneratingReport && selectedIndustryData && (
-          <div className="bg-white rounded-xl p-8 border border-blue-200 shadow-md">
-            <div className="text-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                🤖 Generating {selectedIndustryData.name} Report
-              </h3>
-              <p className="text-gray-600">Claude 4 Opus is analyzing your industry and creating a comprehensive implementation guide...</p>
-            </div>
-            <PDFReportGenerator 
-              content={null as any}
-              workflowData={selectedIndustryData.workflow}
-              isGenerating={true}
-            />
+      {/* Industry Report Section */}
+      {selectedIndustryData && (
+        <div id="report-generation-area" className="mb-8">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-md mb-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {selectedIndustryData.name} - Implementation Guide
+            </h3>
+            <p className="text-gray-600">
+              Generate a comprehensive AI-powered implementation guide for {selectedIndustryData.name.toLowerCase()} automation.
+            </p>
           </div>
-        )}
-      </div>
+          
+          <PDFReportGenerator 
+            content={generatedContent}
+            workflowData={selectedIndustryData.workflow}
+            isGenerating={isGeneratingReport}
+            onGenerateReport={() => generateIndustryReport(selectedIndustryData)}
+          />
+        </div>
+      )}
 
-      {/* Data Generation Area */}
-      <div id="data-generation-area">
-        {/* Data Report Generation */}
-        {isGeneratingFromData && (
-          <div className="bg-white rounded-xl p-8 border border-slate-200 shadow-md">
-            <div className="text-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                🤖 Analyzing Your Data
-              </h3>
-              <p className="text-gray-600">Claude 4 Opus is processing your data and creating custom automation recommendations...</p>
-            </div>
-            <PDFReportGenerator 
-              content={null as any}
-              workflowData={{
-                workflowName: 'Custom Data Analysis & Automation',
-                workflowDescription: 'AI-generated analysis based on your provided data',
-                steps: []
-              }}
-              isGenerating={true}
-            />
+      {/* Data Analysis Report Section */}
+      {dataImportText.trim() && (
+        <div id="data-generation-area" className="mb-8">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-md mb-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Custom Data Analysis - Implementation Guide
+            </h3>
+            <p className="text-gray-600">
+              Generate a personalized automation report based on your specific business data and processes.
+            </p>
           </div>
-        )}
-      </div>
+          
+          <PDFReportGenerator 
+            content={dataGeneratedContent}
+            workflowData={{
+              workflowName: 'Custom Data Analysis & Automation',
+              workflowDescription: 'AI-generated analysis based on your provided data',
+              steps: []
+            }}
+            isGenerating={isGeneratingFromData}
+            onGenerateReport={generateDataReport}
+          />
+        </div>
+      )}
 
-      {/* Results Area */}
-      <div id="report-results">
-        {/* Generated Industry Report */}
-        {generatedContent && selectedIndustryData && (
-          <div className="bg-white rounded-xl p-8 border border-green-200 shadow-md">
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                ✅ {selectedIndustryData.name} - Implementation Report Generated!
-              </h3>
-              <p className="text-gray-600">
-                Your comprehensive AI-generated report is ready. This professional document contains everything needed to implement this automation.
-              </p>
-            </div>
-            
-            <PDFReportGenerator 
-              content={generatedContent}
-              workflowData={selectedIndustryData.workflow}
-              isGenerating={false}
-            />
-          </div>
-        )}
-      </div>
 
-      <div id="data-results">
-        {/* Generated Data Report */}
-        {dataGeneratedContent && (
-          <div className="bg-white rounded-xl p-8 border border-green-200 shadow-md">
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                ✅ Custom Data Report Generated!
-              </h3>
-              <p className="text-gray-600">
-                Your AI analysis is complete. This report contains automation recommendations based on your specific data.
-              </p>
-            </div>
-            
-            <PDFReportGenerator 
-              content={dataGeneratedContent}
-              workflowData={{
-                workflowName: 'Custom Data Analysis & Automation',
-                workflowDescription: 'AI-generated analysis based on your provided data',
-                steps: [
-                  {
-                    name: 'Data Processing & Analysis',
-                    description: 'Automated processing and analysis of the provided data',
-                    type: 'ai'
-                  }
-                ]
-              }}
-              isGenerating={false}
-            />
-          </div>
-        )}
-      </div>
 
       {/* Autopilot Reports Section */}
       <div className="bg-gray-50 rounded-2xl p-8 border border-gray-200">

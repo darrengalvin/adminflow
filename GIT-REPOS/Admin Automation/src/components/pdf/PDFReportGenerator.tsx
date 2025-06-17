@@ -4,34 +4,95 @@ import { PDFReport } from './PDFReport';
 import { AIGeneratedContent, WorkflowAnalysisRequest } from '../../services/claudeService';
 
 interface PDFReportGeneratorProps {
-  content: AIGeneratedContent;
+  content: AIGeneratedContent | null;
   workflowData: WorkflowAnalysisRequest;
   isGenerating?: boolean;
+  onGenerateReport?: () => void;
 }
 
 export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({ 
   content, 
   workflowData, 
-  isGenerating = false 
+  isGenerating = false,
+  onGenerateReport
 }) => {
   const [showPreview, setShowPreview] = useState(false);
   
   const fileName = `${workflowData.workflowName.replace(/[^a-zA-Z0-9]/g, '_')}_Implementation_Guide.pdf`;
   
+  // Show fancy AI loading animation
   if (isGenerating) {
     return (
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-lg border border-blue-200">
-        <div className="flex items-center justify-center space-x-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              🤖 AI is generating your implementation guide...
-            </h3>
-            <p className="text-sm text-gray-600">
-              Claude 4 Opus is analyzing your workflow and creating a comprehensive PDF report
-            </p>
+      <div className="bg-white p-8 rounded-xl border border-blue-200 shadow-lg">
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 mx-auto mb-6 relative">
+            <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping"></div>
+            <div className="relative w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center">
+              <div className="text-white text-2xl">🤖</div>
+            </div>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+            AI is Crafting Your Implementation Guide
+          </h3>
+          <p className="text-gray-600 mb-6 max-w-md mx-auto">
+            Claude 3.5 Sonnet is analyzing your workflow, calculating ROI, and creating a comprehensive professional PDF report...
+          </p>
+          
+          {/* Animated progress steps */}
+          <div className="space-y-3 max-w-lg mx-auto">
+            <div className="flex items-center space-x-3 text-sm">
+              <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white">✓</div>
+              <span className="text-gray-700">Analyzing workflow requirements</span>
+            </div>
+            <div className="flex items-center space-x-3 text-sm">
+              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+              </div>
+              <span className="text-gray-700">Calculating ROI and time savings</span>
+            </div>
+            <div className="flex items-center space-x-3 text-sm">
+              <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+              </div>
+              <span className="text-gray-500">Generating technical specifications</span>
+            </div>
+            <div className="flex items-center space-x-3 text-sm">
+              <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+              </div>
+              <span className="text-gray-500">Creating implementation roadmap</span>
+            </div>
+            <div className="flex items-center space-x-3 text-sm">
+              <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+              </div>
+              <span className="text-gray-500">Formatting professional PDF</span>
+            </div>
           </div>
         </div>
+      </div>
+    );
+  }
+  
+  // Show generate button if no content yet
+  if (!content) {
+    return (
+      <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-lg text-center">
+        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">📄</span>
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 mb-3">
+          Ready to Generate Your Implementation Guide
+        </h3>
+        <p className="text-gray-600 mb-6 max-w-md mx-auto">
+          Click below to have our AI analyze your workflow and create a professional, comprehensive implementation guide with ROI calculations, technical specifications, and step-by-step roadmap.
+        </p>
+        <button
+          onClick={onGenerateReport}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg border-l-4 border-blue-500"
+        >
+          🚀 Generate AI Implementation Report
+        </button>
       </div>
     );
   }
@@ -62,7 +123,7 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
           <PDFDownloadLink
             document={<PDFReport content={content} workflowData={workflowData} />}
             fileName={fileName}
-            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
+            className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg border-l-4 border-emerald-500"
           >
             {({ blob, url, loading, error }) =>
               loading ? '⏳ Generating PDF...' : '⬇️ Download PDF'
