@@ -144,7 +144,13 @@ function App() {
       case 'home':
         return <CAIOHomePage onStartAnalysis={handleStartAnalysis} onNavigate={setCurrentSection} />;
       case 'analyze':
-        return <TaskAnalysis onAddWorkflow={(workflow) => setWorkflows([...workflows, workflow])} />;
+        return (
+          <TaskAnalysis 
+            onBack={() => setCurrentSection('home')}
+            onAddWorkflow={(workflow) => setWorkflows([...workflows, workflow])} 
+            onNavigate={setCurrentSection}
+          />
+        );
       case 'showcase':
         return <Showcase onBack={() => setCurrentSection('home')} />;
       case 'dashboard':
