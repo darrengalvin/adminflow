@@ -42,13 +42,13 @@ export default async function handler(req, res) {
     }
 
     // Make request to Claude API
-    console.log('🤖 Making PDF report request to Claude API with model: claude-3-5-sonnet-20241022');
+    console.log('🤖 Making PDF report request to Claude API with model: claude-opus-4-20250514');
     console.log('📝 Prompt length:', prompt.length, 'characters');
     console.log('📋 Prompt preview:', prompt.substring(0, 200) + '...');
     
     const requestBody = {
-      model: 'claude-3-5-sonnet-20241022', // Using the most capable available model
-      max_tokens: 4000, // Reduced to match working task analysis
+      model: 'claude-opus-4-20250514', // Using Claude 4 Opus - the most capable model
+      max_tokens: 4000, // Matching working task analysis
       messages: [
         {
           role: 'user',
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
       success: true,
       content: claudeResponse,
       source: 'claude-api',
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-opus-4-20250514',
       reportType: reportType
     });
 
