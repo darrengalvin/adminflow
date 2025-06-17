@@ -205,11 +205,28 @@ export function Reports() {
   const generateIndustryReport = async (industry: typeof sampleIndustries[0]) => {
     setIsGeneratingReport(true);
     setSelectedIndustry(industry.id);
+    setGeneratedContent(null); // Clear previous content
+    
+    // Scroll to loading section immediately
+    setTimeout(() => {
+      const loadingElement = document.getElementById('report-generation-area');
+      if (loadingElement) {
+        loadingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
     
     try {
       const claudeService = new ClaudeService();
       const aiContent = await claudeService.generateImplementationGuide(industry.workflow);
       setGeneratedContent(aiContent);
+      
+      // Scroll to results when complete
+      setTimeout(() => {
+        const resultsElement = document.getElementById('report-results');
+        if (resultsElement) {
+          resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
     } catch (error) {
       console.error('Error generating industry report:', error);
       alert('Error generating report. Please check your Claude API key configuration.');
@@ -226,6 +243,15 @@ export function Reports() {
     }
 
     setIsGeneratingFromData(true);
+    setDataGeneratedContent(null); // Clear previous content
+    
+    // Scroll to loading section immediately
+    setTimeout(() => {
+      const loadingElement = document.getElementById('data-generation-area');
+      if (loadingElement) {
+        loadingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
     
     try {
       // Parse the data and create a workflow request
@@ -254,6 +280,14 @@ export function Reports() {
       const claudeService = new ClaudeService();
       const aiContent = await claudeService.generateImplementationGuide(workflowRequest);
       setDataGeneratedContent(aiContent);
+      
+      // Scroll to results when complete
+      setTimeout(() => {
+        const resultsElement = document.getElementById('data-results');
+        if (resultsElement) {
+          resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
     } catch (error) {
       console.error('Error generating data report:', error);
       alert('Error generating report. Please check your Claude API key configuration.');
@@ -279,13 +313,13 @@ export function Reports() {
         </p>
       </div>
 
-      {/* Main Options Grid */}
+              {/* Main Options Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
         
         {/* Option 1: Sample Industry Reports */}
-        <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Sparkles className="h-8 w-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Try Sample Industry Reports</h3>
@@ -298,10 +332,10 @@ export function Reports() {
             {sampleIndustries.map((industry) => {
               const Icon = industry.icon;
               const colorClasses = {
-                emerald: 'from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
-                blue: 'from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
-                purple: 'from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600',
-                indigo: 'from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600'
+                emerald: 'bg-emerald-600 hover:bg-emerald-700 border-emerald-500',
+                blue: 'bg-blue-600 hover:bg-blue-700 border-blue-500',
+                purple: 'bg-purple-600 hover:bg-purple-700 border-purple-500',
+                indigo: 'bg-indigo-600 hover:bg-indigo-700 border-indigo-500'
               };
               
               return (
@@ -309,7 +343,7 @@ export function Reports() {
                   key={industry.id}
                   onClick={() => generateIndustryReport(industry)}
                   disabled={isGeneratingReport}
-                  className={`w-full p-4 rounded-lg bg-gradient-to-r ${colorClasses[industry.color as keyof typeof colorClasses]} text-white hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`w-full p-4 rounded-lg ${colorClasses[industry.color as keyof typeof colorClasses]} text-white border-l-4 hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <div className="flex items-center space-x-3">
                     <Icon className="h-5 w-5" />
@@ -323,9 +357,9 @@ export function Reports() {
         </div>
 
         {/* Option 2: Data Import */}
-        <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-slate-600 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Upload className="h-8 w-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Generate from Your Data</h3>
@@ -352,7 +386,7 @@ Example:
             <button
               onClick={generateDataReport}
               disabled={isGeneratingFromData || !dataImportText.trim()}
-              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full bg-slate-600 hover:bg-slate-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 border-l-4 border-slate-500"
             >
               {isGeneratingFromData ? (
                 <>
@@ -370,9 +404,9 @@ Example:
         </div>
 
         {/* Option 3: Workflow Requirement */}
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-6 border-2 border-amber-200">
+        <div className="bg-amber-50 rounded-xl p-6 border border-amber-200">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-amber-600 rounded-xl flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="h-8 w-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Workflow Reports</h3>
@@ -408,7 +442,7 @@ Example:
           
           <button
             onClick={() => window.open('#workflows', '_self')}
-            className="w-full mt-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2"
+            className="w-full mt-4 bg-amber-600 hover:bg-amber-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 border-l-4 border-amber-500"
           >
             <ArrowRight className="h-5 w-5" />
             <span>Go to Workflow Designer</span>
@@ -416,84 +450,107 @@ Example:
         </div>
       </div>
 
-      {/* Industry Report Generation */}
-      {isGeneratingReport && selectedIndustryData && (
-        <div className="bg-white rounded-xl p-8 border-2 border-blue-200 shadow-lg">
-          <PDFReportGenerator 
-            content={null as any}
-            workflowData={selectedIndustryData.workflow}
-            isGenerating={true}
-          />
-        </div>
-      )}
-
-      {/* Generated Industry Report */}
-      {generatedContent && selectedIndustryData && (
-        <div className="bg-white rounded-xl p-8 border-2 border-green-200 shadow-lg">
-          <div className="mb-6">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              {selectedIndustryData.name} - Implementation Report Generated! 🎉
-            </h3>
-            <p className="text-gray-600">
-              Your comprehensive AI-generated report is ready. This professional document contains everything needed to implement this automation.
-            </p>
+      {/* Report Generation Area */}
+      <div id="report-generation-area">
+        {/* Industry Report Generation */}
+        {isGeneratingReport && selectedIndustryData && (
+          <div className="bg-white rounded-xl p-8 border border-blue-200 shadow-md">
+            <div className="text-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                🤖 Generating {selectedIndustryData.name} Report
+              </h3>
+              <p className="text-gray-600">Claude 4 Opus is analyzing your industry and creating a comprehensive implementation guide...</p>
+            </div>
+            <PDFReportGenerator 
+              content={null as any}
+              workflowData={selectedIndustryData.workflow}
+              isGenerating={true}
+            />
           </div>
-          
-          <PDFReportGenerator 
-            content={generatedContent}
-            workflowData={selectedIndustryData.workflow}
-            isGenerating={false}
-          />
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Data Report Generation */}
-      {isGeneratingFromData && (
-        <div className="bg-white rounded-xl p-8 border-2 border-blue-200 shadow-lg">
-          <PDFReportGenerator 
-            content={null as any}
-            workflowData={{
-              workflowName: 'Custom Data Analysis & Automation',
-              workflowDescription: 'AI-generated analysis based on your provided data',
-              steps: []
-            }}
-            isGenerating={true}
-          />
-        </div>
-      )}
-
-      {/* Generated Data Report */}
-      {dataGeneratedContent && (
-        <div className="bg-white rounded-xl p-8 border-2 border-green-200 shadow-lg">
-          <div className="mb-6">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              Custom Data Report Generated! 🎉
-            </h3>
-            <p className="text-gray-600">
-              Your AI analysis is complete. This report contains automation recommendations based on your specific data.
-            </p>
+      {/* Data Generation Area */}
+      <div id="data-generation-area">
+        {/* Data Report Generation */}
+        {isGeneratingFromData && (
+          <div className="bg-white rounded-xl p-8 border border-slate-200 shadow-md">
+            <div className="text-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                🤖 Analyzing Your Data
+              </h3>
+              <p className="text-gray-600">Claude 4 Opus is processing your data and creating custom automation recommendations...</p>
+            </div>
+            <PDFReportGenerator 
+              content={null as any}
+              workflowData={{
+                workflowName: 'Custom Data Analysis & Automation',
+                workflowDescription: 'AI-generated analysis based on your provided data',
+                steps: []
+              }}
+              isGenerating={true}
+            />
           </div>
-          
-          <PDFReportGenerator 
-            content={dataGeneratedContent}
-            workflowData={{
-              workflowName: 'Custom Data Analysis & Automation',
-              workflowDescription: 'AI-generated analysis based on your provided data',
-              steps: [
-                {
-                  name: 'Data Processing & Analysis',
-                  description: 'Automated processing and analysis of the provided data',
-                  type: 'ai'
-                }
-              ]
-            }}
-            isGenerating={false}
-          />
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Results Area */}
+      <div id="report-results">
+        {/* Generated Industry Report */}
+        {generatedContent && selectedIndustryData && (
+          <div className="bg-white rounded-xl p-8 border border-green-200 shadow-md">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                ✅ {selectedIndustryData.name} - Implementation Report Generated!
+              </h3>
+              <p className="text-gray-600">
+                Your comprehensive AI-generated report is ready. This professional document contains everything needed to implement this automation.
+              </p>
+            </div>
+            
+            <PDFReportGenerator 
+              content={generatedContent}
+              workflowData={selectedIndustryData.workflow}
+              isGenerating={false}
+            />
+          </div>
+        )}
+      </div>
+
+      <div id="data-results">
+        {/* Generated Data Report */}
+        {dataGeneratedContent && (
+          <div className="bg-white rounded-xl p-8 border border-green-200 shadow-md">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                ✅ Custom Data Report Generated!
+              </h3>
+              <p className="text-gray-600">
+                Your AI analysis is complete. This report contains automation recommendations based on your specific data.
+              </p>
+            </div>
+            
+            <PDFReportGenerator 
+              content={dataGeneratedContent}
+              workflowData={{
+                workflowName: 'Custom Data Analysis & Automation',
+                workflowDescription: 'AI-generated analysis based on your provided data',
+                steps: [
+                  {
+                    name: 'Data Processing & Analysis',
+                    description: 'Automated processing and analysis of the provided data',
+                    type: 'ai'
+                  }
+                ]
+              }}
+              isGenerating={false}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Autopilot Reports Section */}
-      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-8 border border-indigo-200">
+      <div className="bg-gray-50 rounded-2xl p-8 border border-gray-200">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Reports on Autopilot</h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -503,9 +560,9 @@ Example:
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Planaroo.ai Example */}
-          <div className="bg-white rounded-xl p-6 border border-indigo-200 shadow-sm">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                 <MapPin className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -518,10 +575,10 @@ Example:
               Simply enter an address and get comprehensive location intelligence reports including demographics, competition analysis, foot traffic patterns, and business viability assessments.
             </p>
             
-            <div className="bg-indigo-50 rounded-lg p-4 mb-4">
-              <p className="text-sm text-indigo-700 font-medium mb-2">Example Input:</p>
+            <div className="bg-blue-50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-700 font-medium mb-2">Example Input:</p>
               <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-indigo-600" />
+                <MapPin className="h-4 w-4 text-blue-600" />
                 <span className="text-sm text-gray-700">123 High Street, London, UK</span>
               </div>
             </div>
@@ -547,7 +604,7 @@ Example:
             
             <button 
               onClick={() => window.open('https://planaroo.ai', '_blank')}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 border-l-4 border-blue-500"
             >
               <ExternalLink className="h-4 w-4" />
               <span>Visit Planaroo.ai</span>
@@ -555,9 +612,9 @@ Example:
           </div>
 
           {/* Your Custom Solution */}
-          <div className="bg-white rounded-xl p-6 border border-purple-200 shadow-sm">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -570,8 +627,8 @@ Example:
               Build your own autopilot reporting system. Our AI can be configured to generate industry-specific reports from any data input - financial data, customer information, operational metrics, and more.
             </p>
             
-            <div className="bg-purple-50 rounded-lg p-4 mb-4">
-              <p className="text-sm text-purple-700 font-medium mb-2">What You Could Build:</p>
+            <div className="bg-emerald-50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-emerald-700 font-medium mb-2">What You Could Build:</p>
               <div className="space-y-1">
                 <span className="text-sm text-gray-700 block">• Financial performance reports from transaction data</span>
                 <span className="text-sm text-gray-700 block">• Customer insights from CRM data</span>
@@ -601,7 +658,7 @@ Example:
             
             <button 
               onClick={() => window.open('https://calendly.com/your-caio/strategy-session', '_blank')}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 border-l-4 border-emerald-500"
             >
               <ArrowRight className="h-4 w-4" />
               <span>Book Strategy Session</span>

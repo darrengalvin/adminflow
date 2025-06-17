@@ -134,22 +134,34 @@ export class ClaudeService {
   async generateImplementationGuide(workflowData: WorkflowAnalysisRequest): Promise<AIGeneratedContent> {
     console.log('🤖 Making API call to Claude 4 Opus...');
     
-    const prompt = `You are an expert business automation consultant and technical architect. Analyze this workflow and generate a comprehensive, professional implementation guide.
+    const prompt = `You are a Fortune 500 business automation consultant with 15+ years of experience implementing enterprise automation solutions. Your expertise includes ROI analysis, technical architecture, and strategic implementation planning.
 
-WORKFLOW ANALYSIS:
-• Name: ${workflowData.workflowName}
-• Description: ${workflowData.workflowDescription}
-• Steps: ${workflowData.steps.map((step, index) => `${index + 1}. ${step.name}${step.description ? ` - ${step.description}` : ''} (${step.type})`).join('\n')}
+BUSINESS CONTEXT:
+You are creating a professional implementation guide for a client seeking to automate their workflow. This document will be presented to C-level executives and technical teams, so it must be comprehensive, data-driven, and actionable.
 
-REQUIREMENTS:
-Generate a professional-grade implementation guide with:
-- Realistic ROI calculations based on industry standards
-- Detailed technical architecture and API specifications  
-- Comprehensive code examples with multiple languages
-- Implementation timeline with specific phases
-- Resource requirements and budget estimates
-- Success metrics and KPIs
-- Risk assessment with mitigation strategies
+WORKFLOW TO ANALYZE:
+• Business Process: ${workflowData.workflowName}
+• Current State: ${workflowData.workflowDescription}
+• Automation Scope: ${workflowData.steps.map((step, index) => `${index + 1}. ${step.name}${step.description ? ` - ${step.description}` : ''} (${step.type})`).join('\n')}
+
+DELIVERABLE REQUIREMENTS:
+Create a PROFESSIONAL, ENTERPRISE-GRADE implementation guide with:
+
+1. EXECUTIVE SUMMARY - Clear business case with measurable ROI
+2. TECHNICAL ARCHITECTURE - Production-ready system design with APIs
+3. IMPLEMENTATION ROADMAP - Detailed project timeline with milestones
+4. RESOURCE PLANNING - Team structure and budget allocation
+5. SUCCESS METRICS - KPIs and performance indicators
+6. RISK MANAGEMENT - Comprehensive risk assessment with mitigation
+7. CODE EXAMPLES - Production-quality implementation samples
+
+QUALITY STANDARDS:
+- Use industry-standard ROI calculations and benchmarks
+- Include realistic timelines based on actual project experience
+- Provide specific technical details and API specifications
+- Use professional language appropriate for executive presentation
+- Include measurable success metrics and KPIs
+- Address common implementation challenges and solutions
 
 CRITICAL: Respond ONLY with valid JSON in this exact format (no markdown, no comments):
 
