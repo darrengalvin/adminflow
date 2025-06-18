@@ -12,6 +12,7 @@ import { SystemLogs } from './components/SystemLogs';
 import TaskAnalysis from './components/TaskAnalysis';
 import { Showcase } from './components/Showcase';
 import { Reports } from './components/Reports';
+import { ReportHistory } from './components/ReportHistory';
 import { workflowEngine } from './services/workflowEngine';
 import { 
   mockWorkflows, 
@@ -173,6 +174,8 @@ function App() {
         );
       case 'reports':
         return <Reports />;
+      case 'report-history':
+        return <ReportHistory />;
       case 'integrations':
         return <APIIntegrations integrations={mockAPIIntegrations} />;
       case 'logs':

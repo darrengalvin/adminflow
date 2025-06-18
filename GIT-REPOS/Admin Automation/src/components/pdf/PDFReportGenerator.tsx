@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ClaudeService, AIGeneratedReport, WorkflowAnalysisRequest } from '../../services/claudeService';
 import { StatusService, StatusUpdate } from '../../services/statusService';
+import { ReportHistoryService } from '../../services/reportHistoryService';
 import { DynamicReportRenderer } from './DynamicReportRenderer';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -120,6 +121,11 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
       }
       
       setGeneratedReport(report);
+      
+      // Save report to history automatically
+      const reportId = ReportHistoryService.saveReport(report, workflowData.workflowName);
+      console.log('📚 Report saved to history with ID:', reportId);
+      
       onGenerateReport?.(report);
       
       // Keep the success message visible longer and don't clear it automatically

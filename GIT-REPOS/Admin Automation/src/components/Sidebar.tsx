@@ -6,7 +6,8 @@ import {
   Settings, 
   Sparkles,
   Award,
-  FileText
+  FileText,
+  History
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -20,6 +21,7 @@ export function Sidebar({ currentSection, onNavigate }: SidebarProps) {
     { id: 'analyze', label: 'AI Task Analyser', icon: Brain },
     { id: 'workflows', label: 'Workflow Designer', icon: Zap },
     { id: 'reports', label: 'AI Reports', icon: FileText },
+    { id: 'report-history', label: 'Report History', icon: History },
     { id: 'showcase', label: 'Showcase', icon: Sparkles },
     { id: 'integrations', label: 'Integrations', icon: Settings },
   ];
