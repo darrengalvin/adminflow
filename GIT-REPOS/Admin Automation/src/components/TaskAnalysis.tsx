@@ -251,7 +251,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         method: 'POST',
         url: 'https://services.leadconnectorhq.com/opportunities/',
         headers: [
-          { key: 'Authorization', value: 'YOUR_GHL_PRIVATE_INTEGRATION_TOKEN', enabled: true },
+          { key: 'Authorization', value: 'Bearer YOUR_GHL_JWT_TOKEN', enabled: true },
           { key: 'Content-Type', value: 'application/json', enabled: true },
           { key: 'Version', value: '2021-07-28', enabled: true }
         ],
@@ -277,7 +277,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         method: 'GET',
         url: 'https://services.leadconnectorhq.com/contacts/',
         headers: [
-          { key: 'Authorization', value: 'YOUR_GHL_PRIVATE_INTEGRATION_TOKEN', enabled: true },
+          { key: 'Authorization', value: 'Bearer YOUR_GHL_JWT_TOKEN', enabled: true },
           { key: 'Version', value: '2021-07-28', enabled: true }
         ],
         params: [
@@ -295,7 +295,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         method: 'GET',
         url: 'https://services.leadconnectorhq.com/locations/',
         headers: [
-          { key: 'Authorization', value: 'YOUR_GHL_PRIVATE_INTEGRATION_TOKEN', enabled: true },
+          { key: 'Authorization', value: 'Bearer YOUR_GHL_JWT_TOKEN', enabled: true },
           { key: 'Version', value: '2021-07-28', enabled: true }
         ],
         params: [],
@@ -309,7 +309,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         method: 'GET',
         url: 'https://services.leadconnectorhq.com/opportunities/pipelines',
         headers: [
-          { key: 'Authorization', value: 'YOUR_GHL_PRIVATE_INTEGRATION_TOKEN', enabled: true },
+          { key: 'Authorization', value: 'Bearer YOUR_GHL_JWT_TOKEN', enabled: true },
           { key: 'Version', value: '2021-07-28', enabled: true }
         ],
         params: [
