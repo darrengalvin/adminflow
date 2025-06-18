@@ -249,15 +249,16 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         id: 'ghl-opportunities',
         name: 'GoHighLevel - Create Opportunity (API 2.0)',
         method: 'POST',
-        url: 'https://services.leadconnectorhq.com/opportunities',
+        url: 'https://services.leadconnectorhq.com/opportunities/',
         headers: [
           { key: 'Authorization', value: 'YOUR_GHL_PRIVATE_INTEGRATION_TOKEN', enabled: true },
           { key: 'Content-Type', value: 'application/json', enabled: true },
           { key: 'Version', value: '2021-07-28', enabled: true }
         ],
-        params: [],
+        params: [
+          { key: 'locationId', value: 'qlmxFY68hrnVjyo8cNQC', enabled: true }
+        ],
         body: JSON.stringify({
-          "locationId": "YOUR_LOCATION_ID",
           "title": `${new Date().toLocaleDateString()} | ${taskData.taskName || 'Automation Test'} | 1 person`,
           "pipelineId": "pipeline_6707c4c4e7b4f3001a8b4567",
           "pipelineStageId": "stage_6707c4c4e7b4f3001a8b4568",
@@ -274,13 +275,44 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         id: 'ghl-contacts',
         name: 'GoHighLevel - Get Contacts (API 2.0)',
         method: 'GET',
-        url: 'https://services.leadconnectorhq.com/contacts',
+        url: 'https://services.leadconnectorhq.com/contacts/',
         headers: [
           { key: 'Authorization', value: 'YOUR_GHL_PRIVATE_INTEGRATION_TOKEN', enabled: true },
           { key: 'Version', value: '2021-07-28', enabled: true }
         ],
         params: [
           { key: 'limit', value: '20', enabled: true },
+          { key: 'locationId', value: 'qlmxFY68hrnVjyo8cNQC', enabled: true }
+        ],
+        body: '',
+        bodyType: 'none'
+      });
+      
+      // Add alternative endpoint tests
+      requests.push({
+        id: 'ghl-test-locations',
+        name: 'GoHighLevel - Test Locations Endpoint',
+        method: 'GET',
+        url: 'https://services.leadconnectorhq.com/locations/',
+        headers: [
+          { key: 'Authorization', value: 'YOUR_GHL_PRIVATE_INTEGRATION_TOKEN', enabled: true },
+          { key: 'Version', value: '2021-07-28', enabled: true }
+        ],
+        params: [],
+        body: '',
+        bodyType: 'none'
+      });
+      
+      requests.push({
+        id: 'ghl-test-pipelines',
+        name: 'GoHighLevel - Test Pipelines Endpoint',
+        method: 'GET',
+        url: 'https://services.leadconnectorhq.com/opportunities/pipelines',
+        headers: [
+          { key: 'Authorization', value: 'YOUR_GHL_PRIVATE_INTEGRATION_TOKEN', enabled: true },
+          { key: 'Version', value: '2021-07-28', enabled: true }
+        ],
+        params: [
           { key: 'locationId', value: 'qlmxFY68hrnVjyo8cNQC', enabled: true }
         ],
         body: '',
