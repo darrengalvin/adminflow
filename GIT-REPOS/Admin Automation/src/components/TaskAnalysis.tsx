@@ -34,6 +34,53 @@ interface TaskAnalysisProps {
 }
 
 const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNavigate }) => {
+  // Data migration function to handle old task data format
+  const migrateTaskDataFormat = (oldData: any) => {
+    if (!oldData) return oldData;
+    
+    // If it already has the new format, return as-is
+    if (oldData.completeSolution || oldData.researchFindings) {
+      return oldData;
+    }
+    
+    // If it has the old format, migrate it
+    if (oldData.automationSolution) {
+      console.log('🔄 Migrating old data format to new format');
+      
+      return {
+        ...oldData,
+        // Migrate automationSolution to completeSolution
+        completeSolution: {
+          automationArchitecture: {
+            triggerSource: oldData.automationSolution.architecture?.dataSource || '📨 Email monitoring or form submission',
+            aiDataExtraction: oldData.automationSolution.architecture?.aiProcessing || '🤖 AI extracts structured data',
+            realTimeAPIs: oldData.automationSolution.architecture?.apiIntegration || '🔗 Direct API integration',
+            smartErrorHandling: oldData.automationSolution.architecture?.errorHandling || '🛡️ Automatic error handling'
+          },
+          liveImplementation: {
+            workingCode: oldData.automationSolution.sampleImplementation?.codeExample || '// Code example not available in legacy format',
+            verifiedAPIs: oldData.automationSolution.sampleImplementation?.apiEndpoints || []
+          }
+        },
+        // Add research findings if missing
+        researchFindings: {
+          apiAvailability: 'Legacy data - API availability not verified',
+          authenticationMethod: 'Legacy data - Authentication method not specified',
+          rateLimits: 'Legacy data - Rate limits not specified',
+          pricing: 'Legacy data - Pricing not specified',
+          documentationUrl: null
+        },
+        // Keep manual process breakdown if it exists
+        manualProcessBreakdown: oldData.manualProcessBreakdown || {
+          exactStepsNow: oldData.automationSolution.automationFlow || []
+        }
+      };
+    }
+    
+    // Return original data if no migration needed
+    return oldData;
+  };
+
   const [step, setStep] = useState<'input' | 'analyzing' | 'results'>('input');
   const [taskName, setTaskName] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
@@ -77,7 +124,11 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
               // If session is less than 30 minutes old, restore it
               if (sessionAge < 30 * 60 * 1000) {
                 console.log('🔄 Restoring previous session...');
-                setTaskData(sessionData.taskData);
+                
+                // Migrate old data structure to new format
+                const migratedTaskData = migrateTaskDataFormat(sessionData.taskData);
+                
+                setTaskData(migratedTaskData);
                 setTaskName(sessionData.taskName);
                 setTaskDescription(sessionData.taskDescription);
                 setTimeSpent(sessionData.timeSpent || '');
@@ -91,7 +142,10 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
               }
             } catch (error) {
               console.error('Error restoring session:', error);
+              console.log('🧹 Clearing problematic session data');
               localStorage.removeItem('currentTaskSession');
+              localStorage.removeItem('taskAnalysisHistory'); // Clear history too if it's causing issues
+              showError('❌ Cleared corrupted session data. Please try your analysis again.');
             }
           }
         } catch (error) {
@@ -140,16 +194,19 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         return;
       }
 
-      setTaskData(historyItem.analysis);
+      // Migrate old data format to new format
+      const migratedAnalysis = migrateTaskDataFormat(historyItem.analysis);
+      
+      setTaskData(migratedAnalysis);
       setTaskName(historyItem.taskName || 'Unnamed Task');
       setTaskDescription(historyItem.description || '');
       
       const finalTask = {
         name: historyItem.taskName || 'Unnamed Task',
         description: historyItem.description || '',
-        software: historyItem.analysis?.currentProcess?.software || 'Unknown',
-        timeSpent: historyItem.analysis?.currentProcess?.timePerWeek || 'Unknown',
-        aiSuggestion: historyItem.analysis
+        software: migratedAnalysis?.currentProcess?.software || 'Unknown',
+        timeSpent: migratedAnalysis?.currentProcess?.timePerWeek || 'Unknown',
+        aiSuggestion: migratedAnalysis
       };
       
       setFinalTask(finalTask);

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Admin Automation Storage</title>
+</head>
+<body>
+    <h1>Clearing Admin Automation Storage...</h1>
+    <script>
+        // Clear all localStorage related to the app
+        localStorage.removeItem('currentTaskSession');
+        localStorage.removeItem('taskAnalysisHistory');
+        
+        // Clear any other potential admin automation keys
+        Object.keys(localStorage).forEach(key => {
+            if (key.includes('task') || key.includes('admin') || key.includes('automation')) {
+                localStorage.removeItem(key);
+            }
+        });
+        
+        document.body.innerHTML = '<h1 style="color: green;">✅ Storage Cleared!</h1><p>You can now go back to your app and try again.</p><p><a href="http://localhost:5173">← Back to Admin Automation App</a></p>';
+        
+        console.log('✅ All admin automation localStorage cleared');
+    </script>
+</body>
+</html> 
