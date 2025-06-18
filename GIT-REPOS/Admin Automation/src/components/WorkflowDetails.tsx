@@ -426,7 +426,7 @@ const processData = async (data) => {
       const workflowAnalysisRequest: WorkflowAnalysisRequest = {
         workflowName: workflow.name,
         workflowDescription: workflow.description || 'Workflow automation implementation guide',
-        steps: workflow.steps.map(step => ({
+        steps: (workflow.steps || []).map(step => ({
           name: step.name,
           description: step.description,
           type: step.type || 'automation'
@@ -1059,7 +1059,7 @@ export const config = {
       const workflowData = {
         workflowName: workflow.name,
         workflowDescription: workflow.description || 'Advanced automation workflow for enhanced business efficiency',
-        steps: workflow.steps.map(step => ({
+        steps: (workflow.steps || []).map(step => ({
           name: step.name,
           description: step.description,
           type: step.type
@@ -1575,7 +1575,7 @@ export const config = {
         <div className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-sm">
           <h3 className="text-gray-900 font-bold mb-4 text-lg">How It Starts</h3>
           <div className="space-y-3">
-            {workflow.triggers.map((trigger, index) => (
+            {(workflow.triggers || ['manual']).map((trigger, index) => (
               <div key={index} className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                 <div className="text-blue-700 font-medium text-center">
                   {getWhenItRuns(trigger)}
@@ -1611,7 +1611,7 @@ export const config = {
           Here's what happens automatically when this workflow runs:
         </p>
         <div className="space-y-6">
-          {workflow.steps.map((step, index) => {
+          {(workflow.steps || []).map((step, index) => {
             const stepDisplay = getStepTypeDisplay(step.type);
             const technicalDetails = getStepTechnicalDetails(step);
             const analysisContent = getStepAnalysisContent(step);
@@ -1701,7 +1701,7 @@ export const config = {
                           <span>When It Runs</span>
                         </div>
                         <div className="text-gray-700 font-medium">
-                          {index === 0 ? getWhenItRuns(workflow.triggers[0] || 'manual') : 'After the previous task finishes'}
+                          {index === 0 ? getWhenItRuns((workflow.triggers || ['manual'])[0] || 'manual') : 'After the previous task finishes'}
                         </div>
                       </div>
                     </div>
@@ -2038,7 +2038,7 @@ export const config = {
                 </div>
                 
                 {/* Connection arrow to next step */}
-                {index < workflow.steps.length - 1 && (
+                {index < (workflow.steps || []).length - 1 && (
                   <div className="flex justify-center mt-6">
                     <div className="flex flex-col items-center">
                       <div className="w-px h-6 bg-gray-300"></div>
@@ -2165,7 +2165,7 @@ export const config = {
             workflowData={{
               workflowName: workflow.name,
               workflowDescription: workflow.description || 'Workflow automation implementation guide',
-              steps: workflow.steps.map(step => ({
+              steps: (workflow.steps || []).map(step => ({
                 name: step.name,
                 description: step.description,
                 type: step.type || 'automation'
@@ -2184,7 +2184,7 @@ export const config = {
             workflowData={{
               workflowName: workflow.name,
               workflowDescription: workflow.description || 'Workflow automation implementation guide',
-              steps: workflow.steps.map(step => ({
+              steps: (workflow.steps || []).map(step => ({
                 name: step.name,
                 description: step.description,
                 type: step.type || 'automation'
