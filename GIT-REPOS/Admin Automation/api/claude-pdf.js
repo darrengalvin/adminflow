@@ -44,12 +44,12 @@ export default async function handler(req, res) {
     }
 
     // Make request to Claude API
-    console.log('🤖 Making PDF report request to Claude API with model: claude-opus-4-20250514 (Vercel Pro Extended Timeout)');
+    console.log('🤖 Making PDF report request to Claude API with model: claude-sonnet-4-20250514 (Vercel Pro Extended Timeout)');
     console.log('📝 Prompt length:', prompt.length, 'characters');
     console.log('📋 Prompt preview:', prompt.substring(0, 200) + '...');
     
     const requestBody = {
-      model: 'claude-opus-4-20250514', // Keep Claude 4 Opus as requested
+      model: 'claude-sonnet-4-20250514', // Using Claude 4 Sonnet for cost efficiency
       max_tokens: 8192, // Maximum tokens for comprehensive multi-page reports
       messages: [
         {
@@ -149,7 +149,7 @@ Please complete the HTML document by adding the missing sections and ensuring it
             'anthropic-version': '2023-06-01'
           },
           body: JSON.stringify({
-            model: 'claude-opus-4-20250514',
+            model: 'claude-sonnet-4-20250514',
             max_tokens: 4000,
             messages: [
               {
@@ -199,7 +199,7 @@ Please complete the HTML document by adding the missing sections and ensuring it
       success: true,
       content: claudeResponse,
       source: 'claude-api',
-      model: 'claude-opus-4-20250514',
+      model: 'claude-sonnet-4-20250514',
       reportType: reportType,
       vercelPro: true,
       metadata: {

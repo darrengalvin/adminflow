@@ -3,6 +3,7 @@ import { Task, Workflow, WorkflowStep } from '../types';
 import { generateTaskAnalysisPDF } from '../utils/pdfGenerator';
 import claudeApi from '../services/claudeApi';
 import { useNotifications, NotificationManager } from './CustomNotification';
+import { APITester } from './APITester';
 import { 
   ArrowLeft, 
   ArrowRight,
@@ -20,7 +21,10 @@ import {
   Clipboard,
   X,
   Code,
-  Globe
+  Globe,
+  Search,
+  ExternalLink,
+  TestTube
 } from 'lucide-react';
 
 interface TaskAnalysisProps {
@@ -963,175 +967,354 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
               
               {/* Right Column - Analysis Results */}
               <div className="lg:col-span-2 space-y-8">
-                {/* Great News Section */}
-                {taskData.userFriendlyExplanation && (
-                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                    <div className="flex items-start space-x-4 mb-4">
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                          <CheckCircle className="h-6 w-6 text-green-600" />
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-900">Great News!</h3>
-                        <p className="text-slate-600">Your task can definitely be automated</p>
+                {/* AI Research Results Section */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <div className="flex items-start space-x-4 mb-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <Search className="h-6 w-6 text-green-600" />
                       </div>
                     </div>
-                    <div className="prose prose-slate max-w-none">
-                      {typeof taskData.userFriendlyExplanation === 'string' ? (
-                        <p className="text-slate-700 leading-relaxed">{taskData.userFriendlyExplanation}</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {taskData.userFriendlyExplanation.goodNews && (
-                            <p className="text-slate-700 leading-relaxed">{taskData.userFriendlyExplanation.goodNews}</p>
-                          )}
-                          {taskData.userFriendlyExplanation.whatIsAPI && (
-                            <div>
-                              <h4 className="font-medium text-slate-900 mb-2">What is an API?</h4>
-                              <p className="text-slate-700 leading-relaxed">{taskData.userFriendlyExplanation.whatIsAPI}</p>
-                            </div>
-                          )}
-                          {taskData.userFriendlyExplanation.howItWorks && (
-                            <div>
-                              <h4 className="font-medium text-slate-900 mb-2">How It Works</h4>
-                              <p className="text-slate-700 leading-relaxed">{taskData.userFriendlyExplanation.howItWorks}</p>
-                            </div>
-                          )}
-                          {taskData.userFriendlyExplanation.whatYouNeed && (
-                            <div>
-                              <h4 className="font-medium text-slate-900 mb-2">What You Need</h4>
-                              <p className="text-slate-700 leading-relaxed">{taskData.userFriendlyExplanation.whatYouNeed}</p>
-                            </div>
-                          )}
-                          {taskData.userFriendlyExplanation.endpoints && Array.isArray(taskData.userFriendlyExplanation.endpoints) && (
-                            <div>
-                              <h4 className="font-medium text-slate-900 mb-2">Key Endpoints</h4>
-                              <div className="space-y-3">
-                                {taskData.userFriendlyExplanation.endpoints.map((endpoint: any, index: number) => (
-                                  <div key={index} className="border border-slate-200 rounded-lg p-3">
-                                    <h5 className="font-medium text-slate-900 mb-1">{endpoint.name}</h5>
-                                    <p className="text-sm text-slate-600 mb-1">{endpoint.purpose}</p>
-                                    <p className="text-xs text-slate-500">{endpoint.whatItDoes}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {taskData.userFriendlyExplanation.nextSteps && (
-                            <div>
-                              <h4 className="font-medium text-slate-900 mb-2">Next Steps</h4>
-                              <p className="text-slate-700 leading-relaxed">{taskData.userFriendlyExplanation.nextSteps}</p>
-                            </div>
-                          )}
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">🔍 AI Research Complete!</h3>
+                      <p className="text-slate-600">Found working automation solution with real APIs</p>
+                    </div>
+                  </div>
+                  
+                  {taskData.researchFindings && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                      <h4 className="font-medium text-green-900 mb-3 flex items-center space-x-2">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Verified API Research</span>
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-green-800">API Status:</span>
+                          <p className="text-green-700">{taskData.researchFindings.apiAvailability}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-green-800">Authentication:</span>
+                          <p className="text-green-700">{taskData.researchFindings.authenticationMethod}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-green-800">Rate Limits:</span>
+                          <p className="text-green-700">{taskData.researchFindings.rateLimits}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-green-800">Pricing:</span>
+                          <p className="text-green-700">{taskData.researchFindings.pricing}</p>
+                        </div>
+                      </div>
+                      {taskData.researchFindings.documentationUrl && (
+                        <div className="mt-3">
+                          <a 
+                            href={taskData.researchFindings.documentationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span>View Official API Documentation</span>
+                          </a>
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* API Education Section */}
-                {taskData.automation && (
-                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  {taskData.manualProcessBreakdown && (
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                      <h4 className="font-medium text-slate-900 mb-3">📋 Current Manual Process Breakdown</h4>
+                      <div className="space-y-3">
+                        <p><strong>System:</strong> {taskData.manualProcessBreakdown.currentSystem}</p>
+                        <p><strong>Time Wasted:</strong> {taskData.manualProcessBreakdown.timeWasted}</p>
+                        {taskData.manualProcessBreakdown.exactStepsNow && (
+                          <div>
+                            <p className="font-medium text-slate-700 mb-2">What you do manually now:</p>
+                            <ul className="space-y-1 text-sm text-slate-600">
+                              {taskData.manualProcessBreakdown.exactStepsNow.map((step: string, index: number) => (
+                                <li key={index}>{step}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Research Findings Section */}
+                {taskData.researchFindings && (
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       <span className="flex items-center space-x-2">
-                        <Lightbulb className="h-5 w-5 text-blue-600" />
-                        <span>Automation Strategy</span>
+                        <Search className="h-5 w-5 text-blue-600" />
+                        <span>🔍 API Research Results</span>
                       </span>
                     </h3>
-                    <div className="prose prose-slate max-w-none">
-                      {typeof taskData.automation === 'string' ? (
-                        <p className="text-slate-700 leading-relaxed">{taskData.automation}</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {taskData.automation.overview && (
-                            <p className="text-slate-700 leading-relaxed">{taskData.automation.overview}</p>
-                          )}
-                          {taskData.automation.steps && Array.isArray(taskData.automation.steps) && (
-                            <div>
-                              <h4 className="font-medium text-slate-900 mb-2">Automation Steps:</h4>
-                              <ol className="list-decimal list-inside space-y-2">
-                                {taskData.automation.steps.map((step: string, index: number) => (
-                                  <li key={index} className="text-slate-700">{step}</li>
-                                ))}
-                              </ol>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="font-medium text-slate-900 mb-2">API Availability</h4>
+                        <p className="text-slate-700 text-sm">{taskData.researchFindings.apiAvailability}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-slate-900 mb-2">Authentication</h4>
+                        <p className="text-slate-700 text-sm">{taskData.researchFindings.authenticationMethod}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-slate-900 mb-2">Rate Limits</h4>
+                        <p className="text-slate-700 text-sm">{taskData.researchFindings.rateLimits}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-slate-900 mb-2">Pricing</h4>
+                        <p className="text-slate-700 text-sm">{taskData.researchFindings.pricing}</p>
+                      </div>
                     </div>
+                    
+                    {taskData.researchFindings.documentationUrl && (
+                      <div className="mt-4 pt-4 border-t border-slate-200">
+                        <a href={taskData.researchFindings.documentationUrl} target="_blank" rel="noopener noreferrer" 
+                           className="text-blue-600 hover:text-blue-800 flex items-center text-sm">
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          View Official API Documentation
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Implementation Section */}
-                {taskData.implementation && (
+                {/* Working Code Solution Section */}
+                {taskData.completeSolution && (
                   <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       <span className="flex items-center space-x-2">
                         <Code className="h-5 w-5 text-purple-600" />
-                        <span>Implementation Plan</span>
+                        <span>🚀 Production-Ready Code Solution</span>
                       </span>
                     </h3>
-                    <div className="prose prose-slate max-w-none">
-                      {typeof taskData.implementation === 'string' ? (
-                        <p className="text-slate-700 leading-relaxed">{taskData.implementation}</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {taskData.implementation.overview && (
-                            <p className="text-slate-700 leading-relaxed">{taskData.implementation.overview}</p>
-                          )}
-                          {taskData.implementation.steps && Array.isArray(taskData.implementation.steps) && (
+                    
+                    {taskData.completeSolution?.automationArchitecture && (
+                      <div className="mb-6">
+                        <h4 className="font-medium text-slate-900 mb-3">Architecture Overview</h4>
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
-                              <h4 className="font-medium text-slate-900 mb-2">Implementation Steps:</h4>
-                              <ol className="list-decimal list-inside space-y-2">
-                                {taskData.implementation.steps.map((step: string, index: number) => (
-                                  <li key={index} className="text-slate-700">{step}</li>
-                                ))}
-                              </ol>
+                              <span className="font-medium text-slate-700">Trigger Source:</span>
+                              <p className="text-slate-600">{taskData.completeSolution.automationArchitecture.triggerSource}</p>
                             </div>
-                          )}
+                            <div>
+                              <span className="font-medium text-slate-700">AI Processing:</span>
+                              <p className="text-slate-600">{taskData.completeSolution.automationArchitecture.aiDataExtraction}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">API Integration:</span>
+                              <p className="text-slate-600">{taskData.completeSolution.automationArchitecture.realTimeAPIs}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">Error Handling:</span>
+                              <p className="text-slate-600">{taskData.completeSolution.automationArchitecture.smartErrorHandling}</p>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {taskData.manualProcessBreakdown?.exactStepsNow && Array.isArray(taskData.manualProcessBreakdown.exactStepsNow) && (
+                      <div className="mb-6">
+                        <h4 className="font-medium text-slate-900 mb-3">Current Manual Process</h4>
+                        <ol className="list-decimal list-inside space-y-2">
+                          {taskData.manualProcessBreakdown.exactStepsNow.map((step: string, index: number) => (
+                            <li key={index} className="text-slate-700">{step}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
+                    {taskData.completeSolution?.liveImplementation && (
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-slate-900">Working Code Implementation</h4>
+                        {taskData.completeSolution.liveImplementation.workingCode && (
+                          <div className="bg-slate-900 text-slate-100 rounded-lg p-4 overflow-x-auto">
+                            <pre className="text-sm">
+                              <code>{taskData.completeSolution.liveImplementation.workingCode}</code>
+                            </pre>
+                          </div>
+                        )}
+                        
+                        {taskData.completeSolution.liveImplementation.verifiedAPIs && Array.isArray(taskData.completeSolution.liveImplementation.verifiedAPIs) && (
+                          <div>
+                            <h5 className="font-medium text-slate-900 mb-2">Verified API Endpoints</h5>
+                            <div className="space-y-3">
+                              {taskData.completeSolution.liveImplementation.verifiedAPIs.map((endpoint: any, index: number) => (
+                                <div key={index} className="border border-slate-200 rounded-lg p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h6 className="font-medium text-slate-900">{endpoint.name || 'API Endpoint'}</h6>
+                                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
+                                      {endpoint.method || 'GET'}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-slate-600 mb-2">{endpoint.purpose}</p>
+                                  <code className="text-xs bg-slate-100 text-slate-800 px-2 py-1 rounded block">
+                                    {endpoint.endpoint}
+                                  </code>
+                                  {endpoint.documentation && (
+                                    <a href={endpoint.documentation} target="_blank" rel="noopener noreferrer" 
+                                       className="text-xs text-blue-600 hover:text-blue-800 flex items-center mt-2">
+                                      <ExternalLink className="h-3 w-3 mr-1" />
+                                      Documentation
+                                    </a>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* API Endpoints Section */}
-                {taskData.apiEndpoints && Array.isArray(taskData.apiEndpoints) && taskData.apiEndpoints.length > 0 && (
+                {/* Business Impact Section */}
+                {taskData.businessImpact && (
                   <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       <span className="flex items-center space-x-2">
-                        <Globe className="h-5 w-5 text-green-600" />
-                        <span>API Endpoints</span>
+                        <Target className="h-5 w-5 text-green-600" />
+                        <span>Business Impact Analysis</span>
                       </span>
                     </h3>
-                    <div className="space-y-4">
-                      {taskData.apiEndpoints.map((endpoint: any, index: number) => (
-                        <div key={index} className="border border-slate-200 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium text-slate-900">{endpoint.name}</h4>
-                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
-                              {endpoint.method || 'GET'}
-                            </span>
-                          </div>
-                          <p className="text-sm text-slate-600 mb-2">{endpoint.description}</p>
-                          <code className="text-xs bg-slate-100 text-slate-800 px-2 py-1 rounded block">
-                            {endpoint.url}
-                          </code>
-                          {endpoint.parameters && Object.keys(endpoint.parameters).length > 0 && (
-                            <div className="mt-2">
-                              <p className="text-xs font-medium text-slate-700 mb-1">Parameters:</p>
-                              <div className="text-xs text-slate-600">
-                                {Object.entries(endpoint.parameters).map(([key, value]: [string, any]) => (
-                                  <div key={key} className="flex justify-between">
-                                    <span>{key}:</span>
-                                    <span>{String(value)}</span>
-                                  </div>
-                                ))}
-                              </div>
+                    
+                    {taskData.businessImpact.timeAnalysis && (
+                      <div className="mb-6">
+                        <h4 className="font-medium text-slate-900 mb-3">Time Savings</h4>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div>
+                              <p className="text-2xl font-bold text-green-700">
+                                {taskData.businessImpact.timeAnalysis.timeSavingsPercent || '95%'}
+                              </p>
+                              <p className="text-sm text-green-600">Time Reduction</p>
                             </div>
-                          )}
+                            <div>
+                              <p className="text-2xl font-bold text-green-700">
+                                {taskData.businessImpact.timeAnalysis.monthlyHoursSaved || 0}
+                              </p>
+                              <p className="text-sm text-green-600">Hours/Month</p>
+                            </div>
+                            <div>
+                              <p className="text-2xl font-bold text-green-700">
+                                {taskData.businessImpact.timeAnalysis.annualHoursSaved || 0}
+                              </p>
+                              <p className="text-sm text-green-600">Hours/Year</p>
+                            </div>
+                            <div>
+                              <p className="text-2xl font-bold text-green-700">
+                                {taskData.businessImpact.timeAnalysis.automatedTime || '15 sec'}
+                              </p>
+                              <p className="text-sm text-green-600">New Process Time</p>
+                            </div>
+                          </div>
                         </div>
-                      ))}
+                      </div>
+                    )}
+
+                    {taskData.businessImpact.financialImpact && (
+                      <div className="mb-6">
+                        <h4 className="font-medium text-slate-900 mb-3">Financial Impact</h4>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-blue-700">
+                                £{taskData.businessImpact.financialImpact.annualValue?.toLocaleString() || '0'}
+                              </p>
+                              <p className="text-sm text-blue-600">Annual Savings</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-blue-700">
+                                £{taskData.businessImpact.financialImpact.implementationCost?.toLocaleString() || '2,500'}
+                              </p>
+                              <p className="text-sm text-blue-600">Implementation Cost</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-blue-700">
+                                {taskData.businessImpact.financialImpact.roiTimeline || '6 months'}
+                              </p>
+                              <p className="text-sm text-blue-600">ROI Timeline</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Implementation Roadmap */}
+                {taskData.implementationRoadmap && (
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                      <span className="flex items-center space-x-2">
+                        <Code className="h-5 w-5 text-purple-600" />
+                        <span>Implementation Roadmap</span>
+                      </span>
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      {taskData.implementationRoadmap.phase1 && (
+                        <div>
+                          <h4 className="font-medium text-slate-900 mb-2">{taskData.implementationRoadmap.phase1.title}</h4>
+                          <ul className="list-disc list-inside space-y-1 text-sm text-slate-700 ml-4">
+                            {taskData.implementationRoadmap.phase1.tasks?.map((task: string, index: number) => (
+                              <li key={index}>{task}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {taskData.implementationRoadmap.phase2 && (
+                        <div>
+                          <h4 className="font-medium text-slate-900 mb-2">{taskData.implementationRoadmap.phase2.title}</h4>
+                          <ul className="list-disc list-inside space-y-1 text-sm text-slate-700 ml-4">
+                            {taskData.implementationRoadmap.phase2.tasks?.map((task: string, index: number) => (
+                              <li key={index}>{task}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {taskData.implementationRoadmap.phase3 && (
+                        <div>
+                          <h4 className="font-medium text-slate-900 mb-2">{taskData.implementationRoadmap.phase3.title}</h4>
+                          <ul className="list-disc list-inside space-y-1 text-sm text-slate-700 ml-4">
+                            {taskData.implementationRoadmap.phase3.tasks?.map((task: string, index: number) => (
+                              <li key={index}>{task}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {taskData.implementationRoadmap.requiredResources && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                          <h4 className="font-medium text-slate-900 mb-2">Required Resources</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium text-slate-700">Technical:</span>
+                              <p className="text-slate-600">{taskData.implementationRoadmap.requiredResources.technical}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">Access:</span>
+                              <p className="text-slate-600">{taskData.implementationRoadmap.requiredResources.access}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">Time:</span>
+                              <p className="text-slate-600">{taskData.implementationRoadmap.requiredResources.timeEstimate}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">Budget:</span>
+                              <p className="text-slate-600">{taskData.implementationRoadmap.requiredResources.budget}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

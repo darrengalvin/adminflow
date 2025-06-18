@@ -11,6 +11,16 @@ export interface ReportHistoryItem {
   progress?: number;
   phase?: string;
   error?: string;
+  metadata?: {
+    reportType?: 'sectioned' | 'legacy';
+    selectedIndustry?: any;
+    selectedSections?: string[];
+    sectionProgress?: any;
+    hasFailures?: boolean;
+    failedSections?: number;
+    completedSections?: number;
+    totalSections?: number;
+  };
 }
 
 export class ReportHistoryService {
@@ -42,6 +52,40 @@ export class ReportHistoryService {
     return reportId;
   }
 
+  // Create a pending sectioned report with metadata
+  static createPendingSectionedReport(workflowName: string, selectedIndustry: any, selectedSections: string[]): string {
+    const reportId = this.generateReportId();
+    const historyItem: ReportHistoryItem = {
+      id: reportId,
+      report: null,
+      createdAt: new Date().toISOString(),
+      workflowName,
+      status: 'pending',
+      progress: 0,
+      phase: 'Initializing...',
+      metadata: {
+        reportType: 'sectioned',
+        selectedIndustry,
+        selectedSections,
+        totalSections: selectedSections.length,
+        completedSections: 0,
+        failedSections: 0,
+        hasFailures: false
+      }
+    };
+
+    const history = this.getHistory();
+    history.unshift(historyItem);
+    
+    // Keep only the most recent reports
+    if (history.length > this.MAX_REPORTS) {
+      history.splice(this.MAX_REPORTS);
+    }
+    
+    this.saveHistory(history);
+    return reportId;
+  }
+
   // Update report progress and status
   static updateReportProgress(reportId: string, progress: number, phase: string, status?: 'generating' | 'generated' | 'failed'): void {
     const history = this.getHistory();
@@ -53,6 +97,24 @@ export class ReportHistoryService {
       if (status) {
         history[reportIndex].status = status;
       }
+      this.saveHistory(history);
+    }
+  }
+
+  // Update sectioned report metadata
+  static updateSectionedReportMetadata(reportId: string, sectionProgress: any): void {
+    const history = this.getHistory();
+    const reportIndex = history.findIndex(item => item.id === reportId);
+    
+    if (reportIndex !== -1 && history[reportIndex].metadata) {
+      const completedSections = Object.values(sectionProgress).filter((s: any) => s.status === 'completed').length;
+      const failedSections = Object.values(sectionProgress).filter((s: any) => s.status === 'error').length;
+      
+      history[reportIndex].metadata.sectionProgress = sectionProgress;
+      history[reportIndex].metadata.completedSections = completedSections;
+      history[reportIndex].metadata.failedSections = failedSections;
+      history[reportIndex].metadata.hasFailures = failedSections > 0;
+      
       this.saveHistory(history);
     }
   }
@@ -83,15 +145,111 @@ export class ReportHistoryService {
     }
   }
 
-  // Update report status (used by PDF generation)
-  static updateReportStatus(reportId: string, status: 'pdf_created'): void {
+  // Fix stuck reports that have all sections completed but are stuck at 90%
+  static fixStuckReports(): number {
     const history = this.getHistory();
-    const reportIndex = history.findIndex(item => item.id === reportId);
+    let fixedCount = 0;
     
-    if (reportIndex !== -1) {
-      history[reportIndex].status = status;
+    console.log('🔍 Debugging stuck reports. Total reports in history:', history.length);
+    
+    history.forEach((report, index) => {
+      console.log(`📋 Report ${index}: ${report.workflowName}`);
+      console.log(`   Status: ${report.status}, Progress: ${report.progress}%`);
+      console.log(`   Report Type: ${report.metadata?.reportType}`);
+      console.log(`   Has sectionProgress:`, !!report.metadata?.sectionProgress);
+      console.log(`   Has report.content:`, !!report.report?.content);
+      console.log(`   Total sections: ${report.metadata?.totalSections}`);
+      
+      if (report.metadata?.sectionProgress) {
+        const sectionProgress = report.metadata.sectionProgress;
+        console.log(`   Section progress keys:`, Object.keys(sectionProgress));
+        
+        Object.entries(sectionProgress).forEach(([key, value]) => {
+          console.log(`     ${key}:`, value);
+        });
+        
+        const completedSections = Object.values(sectionProgress).filter((s: any) => s.status === 'completed').length;
+        const errorSections = Object.values(sectionProgress).filter((s: any) => s.status === 'error').length;
+        console.log(`   Completed: ${completedSections}, Errors: ${errorSections}`);
+      }
+      
+      // Look for reports that are stuck in any incomplete state with all sections completed
+      // This includes "generating", "pdf_created", or any status with progress < 100 but sections complete
+      const isStuckReport = (
+        (report.status === 'generating' || report.status === 'pdf_created' || report.progress < 100) &&
+        report.metadata?.reportType === 'sectioned' && 
+        report.metadata?.sectionProgress &&
+        (!report.report || !report.report.content?.sections) // No proper report content yet
+      );
+      
+      console.log(`   Is stuck report: ${isStuckReport}`);
+      
+      if (isStuckReport) {
+        const sectionProgress = report.metadata.sectionProgress;
+        const completedSections = Object.values(sectionProgress).filter((s: any) => s.status === 'completed').length;
+        const errorSections = Object.values(sectionProgress).filter((s: any) => s.status === 'error').length;
+        const totalSections = report.metadata.totalSections || 0;
+        
+        console.log(`🔧 Attempting to fix: ${completedSections}/${totalSections} completed, ${errorSections} errors`);
+        
+        // RELAXED CONDITIONS: Fix if we have ANY completed sections or if all sections exist with content
+        const hasCompletedSections = completedSections > 0;
+        const hasAllSectionsWithContent = Object.values(sectionProgress).every((s: any) => s.content && s.content.length > 0);
+        const shouldFix = hasCompletedSections || hasAllSectionsWithContent;
+        
+        console.log(`   Should fix: ${shouldFix} (hasCompleted: ${hasCompletedSections}, hasContent: ${hasAllSectionsWithContent})`);
+        
+        if (shouldFix) {
+          console.log(`🔧 Fixing stuck report: ${report.workflowName} (${completedSections}/${totalSections} sections completed, status: ${report.status})`);
+          
+          // Create proper report data structure from sections with content
+          const sectionsArray = Object.entries(sectionProgress)
+            .filter(([_, sectionData]: [string, any]) => sectionData.content && sectionData.content.length > 0)
+            .map(([sectionId, sectionData]: [string, any]) => ({
+              id: sectionId,
+              title: sectionData.title || sectionId,
+              content: sectionData.content || '',
+              category: sectionData.category || 'general'
+            }));
+          
+          console.log(`   Created ${sectionsArray.length} sections for report`);
+          
+          const mockReport = {
+            content: { sections: sectionsArray },
+            metadata: {
+              title: report.workflowName,
+              isRealAI: true,
+              generatedAt: report.createdAt,
+              sectionsGenerated: sectionsArray.length,
+              totalSections: totalSections,
+              failedSections: errorSections,
+              isPartiallyComplete: sectionsArray.length < totalSections,
+              isRestored: true
+            }
+          };
+          
+          // Complete the report
+          history[index].report = mockReport as any;
+          history[index].status = 'generated';
+          history[index].progress = 100;
+          history[index].phase = sectionsArray.length === totalSections ? 'Complete' : `Generated ${sectionsArray.length}/${totalSections} sections`;
+          
+          fixedCount++;
+          console.log(`✅ Fixed report with ${sectionsArray.length} sections`);
+        }
+      }
+      
+      console.log('---');
+    });
+    
+    if (fixedCount > 0) {
       this.saveHistory(history);
+      console.log(`✅ Fixed ${fixedCount} stuck report(s)`);
+    } else {
+      console.log('❌ No reports were fixed');
     }
+    
+    return fixedCount;
   }
 
   // Save a new report to history (legacy method for backward compatibility)

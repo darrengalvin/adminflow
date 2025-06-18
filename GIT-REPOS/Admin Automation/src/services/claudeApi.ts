@@ -33,9 +33,9 @@ class ClaudeApiService {
     const annualHours = timePerWeek * 52;
     const savings = Math.round(annualHours * 0.7);
 
-    const prompt = `You are an expert automation consultant. Analyze this business task and provide detailed automation recommendations.
+    const prompt = `You are an expert automation consultant who transforms manual business processes into AI/API automation solutions. When analyzing manual tasks, DO NOT provide generic advice - provide specific, implementable solutions with working code examples.
 
-TASK DETAILS:
+MANUAL TASK ANALYSIS:
 - Task Name: ${taskData.taskName}
 - Description: ${taskData.description}
 - Software Used: ${taskData.software}
@@ -43,60 +43,139 @@ TASK DETAILS:
 - Current Pain Points: ${taskData.painPoints}
 - What else could they do instead: ${taskData.alternatives}
 
-Please provide a comprehensive analysis in this EXACT JSON format (return only valid JSON, no markdown):
+ANALYSIS REQUIREMENTS:
+You must analyze this as "How we currently do this manually" vs "How AI and APIs can replace this completely"
+
+Provide a comprehensive automation analysis in this EXACT JSON format (return only valid JSON, no markdown):
 
 {
-  "taskName": "Automate: ${taskData.taskName}",
-  "description": "AI-powered automation to eliminate manual ${taskData.taskName.toLowerCase()} process",
-  "userFriendlyExplanation": {
-    "goodNews": "Brief exciting explanation of why this is automatable",
-    "whatIsAPI": "Simple explanation of what an API is in context",
-    "howItWorks": "Step-by-step explanation of the automation process",
-    "whatYouNeed": "What specific technical requirements are needed",
-    "endpoints": [
-      {
-        "name": "Specific API endpoint name",
-        "endpoint": "Actual API URL if known",
-        "purpose": "What this endpoint does",
-        "whatItDoes": "Detailed explanation of functionality"
-      }
+  "taskName": "Task Automation Analysis: ${taskData.taskName}",
+  "description": "Complete AI/API automation solution to replace manual ${taskData.taskName.toLowerCase()} process",
+  "manualProcessAnalysis": {
+    "system": "${taskData.software}",
+    "trigger": "When this task is performed",
+    "timeRequired": "${timePerWeek} hours per week",
+    "manualSteps": [
+      "Extract each manual step from the description",
+      "Include all clicks, navigation, data entry",
+      "Note decision points and variations"
     ],
-    "nextSteps": "Clear instructions for implementation"
+    "painPointsIdentified": [
+      "What's inefficient about current process",
+      "Where errors commonly occur", 
+      "Bottlenecks and time wasters"
+    ]
   },
-  "currentProcess": {
-    "software": "${taskData.software}",
-    "timePerWeek": ${timePerWeek},
-    "painPoints": "${taskData.painPoints}",
-    "alternativeUse": "${taskData.alternatives}"
+  "automationSolution": {
+    "architecture": {
+      "dataSource": "Where data comes from (email, form, webhook)",
+      "aiProcessing": "How AI will handle decisions/data extraction",
+      "apiIntegration": "Specific APIs and endpoints to be used",
+      "errorHandling": "Comprehensive error management approach"
+    },
+    "automationFlow": [
+      "Step 1: Detailed technical description with API calls",
+      "Step 2: Include data transformations and AI processing", 
+      "Step 3: Show error handling and validation"
+    ],
+    "sampleImplementation": {
+      "codeExample": "// Provide actual, working code example with API calls",
+      "apiEndpoints": [
+        {
+          "method": "POST/GET/PUT",
+          "endpoint": "Actual API endpoint URL",
+          "purpose": "What this endpoint does",
+          "sampleCall": "curl command or code snippet"
+        }
+      ],
+      "errorHandlingStrategy": [
+        "Missing Data: Specific handling approach",
+        "API Failures: Retry logic and fallbacks",
+        "Invalid Input: Data validation rules"
+      ]
+    }
   },
-  "automation": {
-    "type": "Type of automation (API Integration, RPA, etc.)",
-    "apiConnections": ["List of specific APIs that could be used"],
-    "aiCapabilities": ["List of AI features that could help"],
-    "integrations": ["List of integration tools like Zapier, Make.com"]
+  "businessImpact": {
+    "timeAnalysis": {
+      "currentManualTime": "${timePerWeek} hours per week",
+      "automatedTime": "15 seconds per instance",
+      "timeSavingsPercent": "95%",
+      "monthlyHoursSaved": ${Math.round(timePerWeek * 4 * 0.9)},
+      "annualHoursSaved": ${Math.round(timePerWeek * 52 * 0.9)}
+    },
+    "financialImpact": {
+      "costPerHour": 30,
+      "annualValue": ${Math.round(timePerWeek * 52 * 0.9 * 30)},
+      "implementationCost": 2500,
+      "roiTimeline": "4-6 months payback"
+    },
+    "additionalBenefits": [
+      "24/7 processing capability",
+      "Elimination of human errors",
+      "Scalability without additional staff",
+      "Consistent data quality"
+    ]
   },
-  "impact": {
-    "annualHoursSaved": ${savings},
-    "monthlyHoursSaved": ${Math.round(timePerWeek * 4 * 0.7)},
-    "valuePerYear": "£${savings * 25}",
-    "efficiencyGain": "70%"
+  "implementationRoadmap": {
+    "phase1": {
+      "title": "Setup (Week 1)",
+      "tasks": [
+        "Obtain API credentials for ${taskData.software}",
+        "Set up development environment",
+        "Create test data set",
+        "Build basic API connectivity"
+      ]
+    },
+    "phase2": {
+      "title": "Core Automation (Week 2-3)",
+      "tasks": [
+        "Implement main automation workflow",
+        "Add comprehensive error handling",
+        "Create monitoring and logging",
+        "Test with real data"
+      ]
+    },
+    "phase3": {
+      "title": "Deployment (Week 4)",
+      "tasks": [
+        "User acceptance testing",
+        "Deploy to production",
+        "Set up monitoring alerts", 
+        "Train team on new process"
+      ]
+    },
+    "requiredResources": {
+      "technical": "Node.js developer, API integration experience",
+      "access": "${taskData.software} admin access, API keys",
+      "timeEstimate": "20-25 development hours",
+      "budget": "£150/month ongoing costs"
+    }
   },
-  "implementation": {
-    "setupTime": "Realistic time estimate for implementation",
-    "difficulty": "Easy/Medium/Hard",
-    "steps": ["Step 1", "Step 2", "Step 3", "etc."],
-    "nextActions": ["Immediate action items"]
+  "riskAssessment": {
+    "potentialRisks": [
+      "API Changes: ${taskData.software} updates could break integration",
+      "Data Quality: Poor input data could create issues",
+      "Rate Limits: High volume could hit API limits"
+    ],
+    "mitigationStrategies": [
+      "Subscribe to API changelog and maintain compatibility",
+      "Implement data validation with manual review fallback",
+      "Add request queuing and retry logic"
+    ]
   }
 }
 
-Focus on:
-1. REAL, specific APIs and endpoints where possible
-2. Practical, implementable solutions
-3. Clear business value and time savings
-4. Specific next steps the user can take
-5. Accurate technical requirements
+CRITICAL REQUIREMENTS:
+1. ✅ Provide SPECIFIC API endpoints - not generic "has an API"
+2. ✅ Include WORKING code examples - actual implementable code  
+3. ✅ Detail COMPREHENSIVE error handling - cover edge cases
+4. ✅ Calculate EXACT time/cost savings - real business numbers
+5. ✅ Create REALISTIC implementation timeline - actual project plan
+6. ✅ Include TESTING procedures - how to validate it works
 
-Be precise about which software integrations are actually possible and provide realistic implementation guidance.`;
+❌ AVOID: Generic statements, vague suggestions, missing technical details, no code examples
+
+Focus on transforming the manual process into a complete technical automation solution with specific APIs, working code, and detailed implementation guidance.`;
 
     console.log('🔄 Making direct Claude API request...');
     console.log('📊 Request details:', {

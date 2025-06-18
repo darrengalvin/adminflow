@@ -435,7 +435,7 @@ const processData = async (data) => {
       
       // Call Claude API to generate content
       const claudeService = new ClaudeService();
-      console.log('📡 Making API call to Claude 4 Opus...');
+              console.log('📡 Making API call to Claude 4 Sonnet...');
       const aiContent = await claudeService.generateImplementationGuide(workflowAnalysisRequest);
       console.log('✅ AI content generated successfully');
       

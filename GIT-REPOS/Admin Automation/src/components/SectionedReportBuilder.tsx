@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { industryTemplates, IndustryTemplate, ReportSection, getSectionsByCategory } from '../data/industryTemplates';
 import { PDFCompiler } from '../services/pdfCompiler';
 import { ReportHistoryService } from '../services/reportHistoryService';
+import { generateAndDownloadPDF } from './PDFGenerator';
+import { claudeService } from '../services/claudeService';
 
 interface SectionProgress {
   id: string;
   status: 'pending' | 'generating' | 'completed' | 'error';
   content?: string;
+  pdfData?: any; // Structured data for PDF generation
   progress: number;
 }
 
@@ -18,6 +21,47 @@ export const SectionedReportBuilder: React.FC = () => {
   const [currentlyGenerating, setCurrentlyGenerating] = useState<string | null>(null);
   const [pdfCompiler] = useState(() => new PDFCompiler());
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
+
+  // Check for restoration data on component mount
+  useEffect(() => {
+    const restoreData = localStorage.getItem('restoreSectionedReport');
+    if (restoreData) {
+      try {
+        const parsed = JSON.parse(restoreData);
+        
+        // Check if restoration data is recent (within 1 hour)
+        const isRecent = Date.now() - parsed.timestamp < 3600000;
+        
+        if (isRecent && parsed.selectedIndustry) {
+          console.log('🔄 Restoring sectioned report state:', parsed);
+          
+          // Find the industry template
+          const industry = industryTemplates.find(t => t.id === parsed.selectedIndustry.id);
+          if (industry) {
+            setSelectedIndustry(industry);
+            setSelectedSections(parsed.selectedSections || []);
+            setCurrentReportId(parsed.reportId);
+            
+            // Restore section progress if available
+            if (parsed.sectionProgress) {
+              setSectionProgress(parsed.sectionProgress);
+            }
+            
+            // Show restoration message
+            setTimeout(() => {
+              alert(`Restored report: "${parsed.workflowName}"\nYou can now retry failed sections or compile the partial report.`);
+            }, 500);
+          }
+        }
+        
+        // Clean up restoration data
+        localStorage.removeItem('restoreSectionedReport');
+      } catch (error) {
+        console.error('Failed to restore sectioned report:', error);
+        localStorage.removeItem('restoreSectionedReport');
+      }
+    }
+  }, []);
 
   const handleIndustrySelect = (template: IndustryTemplate) => {
     setSelectedIndustry(template);
@@ -37,16 +81,22 @@ export const SectionedReportBuilder: React.FC = () => {
   };
 
   const startGeneration = async () => {
-    if (!selectedIndustry) return;
-    
+    if (selectedSections.length === 0) {
+      alert('Please select at least one section to generate.');
+      return;
+    }
+
     setIsGenerating(true);
     
-    // Create pending report entry immediately in history
-    const reportId = ReportHistoryService.createPendingReport(`${selectedIndustry.name} - Sectioned Report`);
+    // Create a pending report in history
+    const reportId = ReportHistoryService.createPendingSectionedReport(
+      `${selectedIndustry.name} - Sectioned Report`,
+      selectedIndustry,
+      selectedSections
+    );
     setCurrentReportId(reportId);
-    console.log('📚 Created pending sectioned report in history with ID:', reportId);
     
-    // Initialize progress for all selected sections
+    // Initialize section progress
     const initialProgress: Record<string, SectionProgress> = {};
     selectedSections.forEach(sectionId => {
       initialProgress[sectionId] = {
@@ -56,70 +106,48 @@ export const SectionedReportBuilder: React.FC = () => {
       };
     });
     setSectionProgress(initialProgress);
-
-    // Generate sections in batches of 2-3
-    const batchSize = 2;
-    const sections = selectedIndustry.sections.filter(s => selectedSections.includes(s.id));
     
+    // Update initial metadata
+    ReportHistoryService.updateSectionedReportMetadata(reportId, initialProgress);
+    
+    // Update to generating status
+    ReportHistoryService.updateReportProgress(
+      reportId,
+      10,
+      'Starting section generation...',
+      'generating'
+    );
+
+    console.log('📚 Created pending sectioned report in history with ID:', reportId);
+
     try {
-      for (let i = 0; i < sections.length; i += batchSize) {
-        const batch = sections.slice(i, i + batchSize);
+      // Generate sections in parallel batches to avoid overwhelming the API
+      const sectionsToGenerate = selectedIndustry.sections.filter(s => selectedSections.includes(s.id));
+      const batchSize = 3; // Process 3 sections at a time
+      
+      for (let i = 0; i < sectionsToGenerate.length; i += batchSize) {
+        const batch = sectionsToGenerate.slice(i, i + batchSize);
+        console.log(`🔄 Processing batch ${Math.floor(i / batchSize) + 1}: ${batch.map(s => s.title).join(', ')}`);
         
-        // Update overall progress in history
-        const overallProgress = Math.round((i / sections.length) * 100);
-        ReportHistoryService.updateReportProgress(
-          reportId, 
-          overallProgress, 
-          `Generating sections ${i + 1}-${Math.min(i + batchSize, sections.length)} of ${sections.length}...`,
-          'generating'
-        );
-        
-        // Generate batch in parallel
+        // Process batch in parallel
         await Promise.all(
           batch.map(section => generateSection(section))
         );
-      }
-
-      // Always save the report, even with partial completion
-      const completedSections = Object.values(sectionProgress).filter(s => s.status === 'completed');
-      const totalSections = selectedSections.length;
-      const failedSections = Object.values(sectionProgress).filter(s => s.status === 'error');
-      
-      // Create report with current progress (completed + failed sections)
-      const mockReport = {
-        content: { sections: sectionProgress },
-        metadata: {
-          title: `${selectedIndustry.name} Implementation Report`,
-          isRealAI: true,
-          generatedAt: new Date().toISOString(),
-          sectionsGenerated: completedSections.length,
-          totalSections: totalSections,
-          failedSections: failedSections.length,
-          isPartiallyComplete: failedSections.length > 0
-        }
-      };
-      
-      if (completedSections.length === totalSections) {
-        // All sections completed successfully
-        ReportHistoryService.completeReport(reportId, mockReport as any);
-        console.log('📚 Sectioned report completed successfully in history with ID:', reportId);
-      } else if (completedSections.length > 0) {
-        // Partial completion - save what we have
-        ReportHistoryService.completeReport(reportId, mockReport as any);
+        
+        // Update progress after each batch
+        const completedSoFar = i + batch.length;
+        const progressPercent = Math.round((completedSoFar / sectionsToGenerate.length) * 90); // Leave 10% for finalization
+        
         ReportHistoryService.updateReportProgress(
-          reportId, 
-          100, 
-          `Partial completion: ${completedSections.length}/${totalSections} sections generated`,
-          'generated'
-        );
-        console.log(`📚 Partial sectioned report saved: ${completedSections.length}/${totalSections} sections completed`);
-      } else {
-        // Complete failure - no sections completed
-        ReportHistoryService.markReportFailed(
-          reportId, 
-          `All ${totalSections} sections failed to generate`
+          reportId,
+          progressPercent,
+          `Generated ${completedSoFar}/${sectionsToGenerate.length} sections...`,
+          'generating'
         );
       }
+      
+      console.log('📊 All batches completed, sections should be finalizing automatically...');
+      
     } catch (error) {
       // Generation failed entirely
       ReportHistoryService.markReportFailed(reportId, error.message || 'Section generation failed');
@@ -183,18 +211,87 @@ export const SectionedReportBuilder: React.FC = () => {
         throw new Error('Invalid response from API');
       }
 
-      // Add section to PDF compiler
-      pdfCompiler.addSection(section, data.content);
+      // Add section to PDF compiler (using HTML content for legacy compatibility)
+      pdfCompiler.addSection(section, data.htmlContent || data.content);
 
-      setSectionProgress(prev => ({
-        ...prev,
-        [section.id]: { 
-          ...prev[section.id], 
-          status: 'completed', 
-          progress: 100,
-          content: data.content
+      setSectionProgress(prev => {
+        const newProgress = {
+          ...prev,
+          [section.id]: { 
+            ...prev[section.id], 
+            status: 'completed', 
+            progress: 100,
+            content: data.htmlContent || data.content, // HTML for web display
+            pdfData: data.pdfData, // Structured data for PDF
+            title: data.pdfData?.title || section.title // Use AI-generated title if available
+          }
+        };
+        
+        // Update metadata in history
+        if (currentReportId) {
+          ReportHistoryService.updateSectionedReportMetadata(currentReportId, newProgress);
+          
+          // Check if this was the last section to complete
+          const completedCount = Object.values(newProgress).filter(s => s.status === 'completed').length;
+          const errorCount = Object.values(newProgress).filter(s => s.status === 'error').length;
+          const totalSections = selectedSections.length;
+          
+          console.log(`📊 Section ${section.title} completed. Status: ${completedCount + errorCount}/${totalSections} sections done`);
+          
+          // If all sections are done, trigger final report completion
+          if (completedCount + errorCount === totalSections) {
+            console.log('🎯 All sections completed! Triggering final report completion...');
+            setTimeout(() => {
+              // Transform sections data for proper storage
+              const sectionsData = Object.fromEntries(
+                Object.entries(newProgress)
+                  .filter(([_, sectionData]) => sectionData.status === 'completed')
+                  .map(([sectionId, sectionData]) => [
+                    sectionId,
+                    {
+                      id: sectionId,
+                      title: sectionData.title || sectionId,
+                      content: sectionData.content,
+                      pdfData: sectionData.pdfData,
+                      status: sectionData.status,
+                      progress: sectionData.progress
+                    }
+                  ])
+              );
+
+              const mockReport = {
+                content: { sections: sectionsData },
+                metadata: {
+                  title: `${selectedIndustry.name} Implementation Report`,
+                  isRealAI: true,
+                  generatedAt: new Date().toISOString(),
+                  sectionsGenerated: completedCount,
+                  totalSections: totalSections,
+                  failedSections: errorCount,
+                  isPartiallyComplete: errorCount > 0,
+                  hasStructuredPdfData: Object.values(sectionsData).some(s => s.pdfData)
+                }
+              };
+              
+              if (completedCount === totalSections) {
+                ReportHistoryService.completeReport(currentReportId, mockReport as any);
+                console.log('🎉 Perfect completion - all sections generated!');
+              } else if (completedCount > 0) {
+                ReportHistoryService.completeReport(currentReportId, mockReport as any);
+                ReportHistoryService.updateReportProgress(
+                  currentReportId, 
+                  100, 
+                  `Generated ${completedCount}/${totalSections} sections`,
+                  'generated'
+                );
+                console.log(`✅ Partial completion - ${completedCount}/${totalSections} sections generated`);
+              }
+            }, 500); // Small delay to ensure state updates
+          }
         }
-      }));
+        
+        return newProgress;
+      });
 
     } catch (error) {
       console.error(`Error generating section ${section.title} (attempt ${retryCount + 1}):`, error);
@@ -207,19 +304,83 @@ export const SectionedReportBuilder: React.FC = () => {
         error.message.includes('API call failed')
       )) {
         console.log(`Retrying section ${section.title} in 5 seconds... (attempt ${retryCount + 2}/${maxRetries + 1})`);
-        setSectionProgress(prev => ({
-          ...prev,
-          [section.id]: { ...prev[section.id], status: 'pending', progress: 0 }
-        }));
+        setSectionProgress(prev => {
+          const newProgress = {
+            ...prev,
+            [section.id]: { ...prev[section.id], status: 'pending', progress: 0 }
+          };
+          
+          // Update metadata in history
+          if (currentReportId) {
+            ReportHistoryService.updateSectionedReportMetadata(currentReportId, newProgress);
+          }
+          
+          return newProgress;
+        });
         
         setTimeout(() => {
           generateSection(section, retryCount + 1);
         }, 5000); // Longer delay between retries
       } else {
-        setSectionProgress(prev => ({
-          ...prev,
-          [section.id]: { ...prev[section.id], status: 'error', progress: 0 }
-        }));
+        setSectionProgress(prev => {
+          const newProgress = {
+            ...prev,
+            [section.id]: { ...prev[section.id], status: 'error', progress: 0 }
+          };
+          
+          // Update metadata in history
+          if (currentReportId) {
+            ReportHistoryService.updateSectionedReportMetadata(currentReportId, newProgress);
+            
+            // Check if this was the last section to complete (including errors)
+            const completedCount = Object.values(newProgress).filter(s => s.status === 'completed').length;
+            const errorCount = Object.values(newProgress).filter(s => s.status === 'error').length;
+            const totalSections = selectedSections.length;
+            
+            console.log(`❌ Section ${section.title} failed. Status: ${completedCount + errorCount}/${totalSections} sections done`);
+            
+            // If all sections are done, trigger final report completion
+            if (completedCount + errorCount === totalSections) {
+              console.log('🎯 All sections completed (with some failures)! Triggering final report completion...');
+              setTimeout(() => {
+                const mockReport = {
+                  content: { sections: newProgress },
+                  metadata: {
+                    title: `${selectedIndustry.name} Implementation Report`,
+                    isRealAI: true,
+                    generatedAt: new Date().toISOString(),
+                    sectionsGenerated: completedCount,
+                    totalSections: totalSections,
+                    failedSections: errorCount,
+                    isPartiallyComplete: errorCount > 0
+                  }
+                };
+                
+                if (completedCount === totalSections) {
+                  ReportHistoryService.completeReport(currentReportId, mockReport as any);
+                  console.log('🎉 Perfect completion - all sections generated!');
+                } else if (completedCount > 0) {
+                  ReportHistoryService.completeReport(currentReportId, mockReport as any);
+                  ReportHistoryService.updateReportProgress(
+                    currentReportId, 
+                    100, 
+                    `Generated ${completedCount}/${totalSections} sections`,
+                    'generated'
+                  );
+                  console.log(`✅ Partial completion - ${completedCount}/${totalSections} sections generated`);
+                } else {
+                  ReportHistoryService.markReportFailed(
+                    currentReportId, 
+                    `All ${totalSections} sections failed to generate`
+                  );
+                  console.log('❌ Complete failure - all sections failed');
+                }
+              }, 500); // Small delay to ensure state updates
+            }
+          }
+          
+          return newProgress;
+        });
       }
     }
   };
@@ -292,10 +453,10 @@ export const SectionedReportBuilder: React.FC = () => {
     }
   };
 
-  const compilePDF = () => {
+  const compilePDF = async () => {
     if (!selectedIndustry) return;
     
-    console.log('🔄 Compiling PDF from sections:', sectionProgress);
+    console.log('🔄 Compiling professional PDF from sections:', sectionProgress);
     
     // Check if we have completed sections
     const completedSections = Object.values(sectionProgress).filter(s => s.status === 'completed');
@@ -304,19 +465,63 @@ export const SectionedReportBuilder: React.FC = () => {
       return;
     }
     
+    // IMPORTANT: Don't change the report status during PDF generation
+    // The report should remain 'generated' and accessible in history
+    // regardless of PDF compilation success/failure
+    
     try {
-      const compiledHTML = pdfCompiler.compileToPDF(
-        selectedIndustry.name,
-        sectionProgress
-      );
+      // Create a temporary report object for PDF generation
+      const reportData = {
+        id: currentReportId || `temp_${Date.now()}`,
+        workflowName: `${selectedIndustry.name} - Sectioned Report`,
+        createdAt: new Date().toISOString(),
+        status: 'generated' as const,
+        report: {
+          content: {
+            sections: Object.entries(sectionProgress)
+              .filter(([_, sectionData]) => sectionData.status === 'completed')
+              .map(([sectionId, sectionData]) => {
+                const section = selectedIndustry.sections.find(s => s.id === sectionId);
+                return {
+                  id: sectionId,
+                  title: section?.title || 'Unknown Section',
+                  content: sectionData.content || '',
+                  category: section?.category || 'general'
+                };
+              })
+          },
+          metadata: {
+            title: `${selectedIndustry.name} Implementation Report`,
+            industry: selectedIndustry.name,
+            totalSections: completedSections.length,
+            generatedAt: new Date().toISOString()
+          }
+        }
+      };
       
-      console.log('✅ PDF compilation completed');
+      console.log('📄 Generating professional PDF with React PDF renderer...');
+      
+      // Use the new PDF generator
+      await generateAndDownloadPDF(reportData);
+      
+      console.log('✅ Professional PDF generated successfully');
+      
+      // Only update to 'pdf_created' if PDF generation succeeds
+      if (currentReportId) {
+        ReportHistoryService.updateReportStatus(currentReportId, 'pdf_created');
+      }
       
       // Show success message
-      alert(`Successfully compiled ${completedSections.length} sections into PDF! The report has opened in a new window for printing.`);
+      alert(`Successfully generated professional PDF with ${completedSections.length} sections! The PDF has been downloaded to your device.`);
+      
     } catch (error) {
       console.error('❌ PDF compilation failed:', error);
-      alert('PDF compilation failed. Please try again.');
+      
+      // CRITICAL: Don't mark the report as failed just because PDF failed
+      // The sections are still completed and should remain accessible
+      console.log('ℹ️ PDF generation failed, but report sections remain accessible in history');
+      
+      alert(`PDF generation failed, but your ${completedSections.length} completed sections are still saved and accessible in Report History. You can try generating the PDF again later.`);
     }
   };
 
@@ -429,36 +634,47 @@ export const SectionedReportBuilder: React.FC = () => {
         </div>
       </div>
 
-      {/* Progress Overview */}
-      {isGenerating && (
+      {/* Generation Progress Display */}
+      {Object.keys(sectionProgress).length > 0 && (
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Generation Progress</h2>
-            <div className="text-sm text-gray-600">
-              {completedSections} / {selectedSections.length} completed
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                {isGenerating ? 'Generation Progress' : 'Generated Sections'}
+              </h2>
+              <div className="flex items-center space-x-4 mt-2">
+                <div className="text-sm text-gray-600">
+                  Progress: {Math.round(totalProgress)}%
+                </div>
+                <div className="flex space-x-3 text-xs">
+                  <span className="text-green-600">✅ {completedSections} completed</span>
+                  {generatingSections > 0 && <span className="text-blue-600">🔄 {generatingSections} generating</span>}
+                  {failedSections > 0 && <span className="text-red-600">❌ {failedSections} failed</span>}
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-blue-600">{completedSections}/{selectedSections.length}</div>
+              <div className="text-sm text-gray-500">sections done</div>
             </div>
           </div>
           
-          <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
+          <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
             <div 
-              className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500"
               style={{ width: `${totalProgress}%` }}
             ></div>
           </div>
 
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
              {selectedSections.map(sectionId => {
                const section = selectedIndustry.sections.find(s => s.id === sectionId);
-               const progress = sectionProgress[sectionId];
-               if (!section || !progress) return null;
-
+               const progress = sectionProgress[sectionId] || { id: sectionId, status: 'pending', progress: 0 };
+               
+               if (!section) return null;
+               
                return (
-                 <div
-                   key={sectionId}
-                   className={`p-4 rounded-lg border-2 transition-all duration-300 ${
-                     currentlyGenerating === sectionId ? 'border-blue-500 shadow-lg' : 'border-gray-200'
-                   }`}
-                 >
+                 <div key={section.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                    <div className={`w-full h-20 rounded-lg ${getStatusColor(progress.status)} flex items-center justify-center text-white font-bold mb-3`}>
                      <span className="text-3xl">{getStatusIcon(progress.status)}</span>
                    </div>
@@ -501,9 +717,9 @@ export const SectionedReportBuilder: React.FC = () => {
                            Full Preview
                          </button>
                        </div>
-                       <div className="bg-white rounded p-2 border border-green-300 max-h-48 overflow-y-auto">
+                       <div className="bg-white rounded-lg p-4 border border-green-300 max-h-48 overflow-y-auto shadow-inner">
                          <div 
-                           className="text-xs"
+                           className="preview-content"
                            dangerouslySetInnerHTML={{
                              __html: progress.content
                            }}

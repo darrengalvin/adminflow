@@ -8,13 +8,13 @@ export interface StatusUpdate {
 export class StatusService {
   private statusMessages = {
     'initializing': [
-      '🔄 Connecting to Claude 4 Opus...',
+      '🔄 Connecting to Claude 4 Sonnet...',
       '🌟 Initializing AI analysis engine...',
       '⚡ Preparing advanced algorithms...',
       '🧠 Loading business intelligence models...'
     ],
     'generating': [
-      '🤖 Claude 4 Opus is analyzing your workflow...',
+              '🤖 Claude 4 Sonnet is analyzing your workflow...',
       '📊 Processing business requirements...',
       '🎯 Identifying optimization opportunities...',
       '💡 Generating strategic recommendations...',

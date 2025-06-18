@@ -13,6 +13,7 @@ import TaskAnalysis from './components/TaskAnalysis';
 import { Showcase } from './components/Showcase';
 import { Reports } from './components/Reports';
 import { ReportHistory } from './components/ReportHistory';
+import { SectionedReportBuilder } from './components/SectionedReportBuilder';
 import { workflowEngine } from './services/workflowEngine';
 import { 
   mockWorkflows, 
@@ -175,7 +176,9 @@ function App() {
       case 'reports':
         return <Reports />;
       case 'report-history':
-        return <ReportHistory />;
+        return <ReportHistory onNavigate={setCurrentSection} />;
+      case 'sectioned-report-builder':
+        return <SectionedReportBuilder />;
       case 'integrations':
         return <APIIntegrations integrations={mockAPIIntegrations} />;
       case 'logs':

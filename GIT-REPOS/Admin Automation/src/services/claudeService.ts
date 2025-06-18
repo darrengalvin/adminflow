@@ -66,7 +66,7 @@ export class ClaudeService {
       });
 
       if (data.success && data.content) {
-        console.log('✅ Using REAL AI-generated React component from Claude 4 Opus');
+        console.log('✅ Using REAL AI-generated React component from Claude 4 Sonnet');
         return data.content;
       } else {
         throw new Error('Invalid response format from PDF API');
@@ -79,7 +79,7 @@ export class ClaudeService {
   }
 
   async generateReactReport(workflowData: WorkflowAnalysisRequest): Promise<AIGeneratedReport> {
-    console.log('🤖 Making REAL API call to Claude 4 Opus for React component generation...');
+          console.log('🤖 Making REAL API call to Claude 4 Sonnet for React component generation...');
     console.log('📊 Workflow data:', { 
       name: workflowData.workflowName, 
       steps: workflowData.steps.length,
@@ -529,10 +529,19 @@ BUSINESS CONTENT STANDARDS:
 - Include proper citations and data sources
 - Provide actionable next steps and recommendations
 
-Title: ${workflowData.workflowName} - Professional Implementation Report`;
+Title: ${workflowData.workflowName} - Professional Implementation Report
+
+CRITICAL OUTPUT INSTRUCTIONS:
+- RESPOND WITH HTML ONLY - NO CONVERSATIONAL TEXT
+- DO NOT include phrases like "Here is your response", "\`\`\`html", or any explanatory text
+- START IMMEDIATELY with <!DOCTYPE html>
+- END with </html>
+- NO EXPLANATORY TEXT BEFORE OR AFTER THE HTML
+- NO MARKDOWN CODE BLOCKS
+- PURE HTML DOCUMENT ONLY`;
 
     try {
-      console.log('📡 Sending professional HTML document prompt to Claude 4 Opus...');
+      console.log('📡 Sending professional HTML document prompt to Claude 4 Sonnet...');
       const aiResponse = await this.callClaude(prompt);
       console.log('✅ Got HTML document from Claude API:', { 
         responseLength: aiResponse.length,

@@ -53,12 +53,12 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
     
     try {
       // Phase 1: Initializing
-      setCurrentPhase('🔄 Initializing Claude 4 Opus...');
+      setCurrentPhase('🔄 Initializing Claude 4 Sonnet...');
       setProgress(10);
       setEstimatedTimeRemaining('5-10 seconds');
       
       // Update report progress in history
-      ReportHistoryService.updateReportProgress(reportId, 10, '🔄 Initializing Claude 4 Opus...', 'generating');
+              ReportHistoryService.updateReportProgress(reportId, 10, '🔄 Initializing Claude 4 Sonnet...', 'generating');
       
       // Start dynamic status updates for initializing phase
       statusCleanupRef.current = statusService.startStatusUpdates('initializing', (status) => {
@@ -68,12 +68,12 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Phase 2: Generating Component (This is the main phase)
-      setCurrentPhase('🤖 Generating React Component with Claude 4 Opus...');
+              setCurrentPhase('🤖 Generating React Component with Claude 4 Sonnet...');
       setProgress(30);
       setEstimatedTimeRemaining('90-120 seconds');
       
       // Update report progress in history
-      ReportHistoryService.updateReportProgress(reportId, 30, '🤖 Generating React Component with Claude 4 Opus...');
+              ReportHistoryService.updateReportProgress(reportId, 30, '🤖 Generating React Component with Claude 4 Sonnet...');
       
       // Stop initializing updates and start generating updates
       if (statusCleanupRef.current) {
@@ -370,7 +370,7 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
             )}
 
             <div className="text-gray-600 space-y-2">
-              <p>🤖 Claude 4 Opus is crafting your custom implementation guide</p>
+              <p>🤖 Claude 4 Sonnet is crafting your custom implementation guide</p>
               <p>⚡ Using Vercel Pro extended timeout (5 minutes)</p>
               <p>🎨 Generating beautiful React components with charts and visualizations</p>
             </div>
@@ -383,7 +383,7 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
             <h3 className="text-2xl font-bold text-gray-800 mb-2">AI-Powered Implementation Guide</h3>
             <p className="text-gray-600">
               Generate a comprehensive, beautiful report with real business insights, interactive charts, 
-              and professional design - all created by Claude 4 Opus from scratch.
+                              and professional design - all created by Claude 4 Sonnet from scratch.
             </p>
           </div>
 
@@ -391,7 +391,7 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
             <div className="bg-white/50 rounded-lg p-4">
               <div className="text-2xl mb-2">🤖</div>
               <h4 className="font-semibold">AI-Generated Design</h4>
-              <p className="text-gray-600">Complete React components created by Claude 4 Opus</p>
+                              <p className="text-gray-600">Complete React components created by Claude 4 Sonnet</p>
             </div>
             <div className="bg-white/50 rounded-lg p-4">
               <div className="text-2xl mb-2">📊</div>

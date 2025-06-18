@@ -182,7 +182,7 @@ const createHTMLRenderer = (componentCode: string, componentName: string) => {
                 <p class="text-xl mb-8">AI-Generated Implementation Report</p>
                 <div class="bg-white/10 p-4 rounded-xl">
                   <p class="text-lg">📊 Professional Business Analysis</p>
-                  <p class="text-sm mt-2">Generated using Claude 4 Opus AI</p>
+                  <p class="text-sm mt-2">Generated using Claude 4 Sonnet AI</p>
                 </div>
               </div>
             </div>
@@ -383,7 +383,7 @@ export const DynamicReportRenderer: React.FC<DynamicReportRendererProps> = ({
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <h3 className="text-lg font-semibold text-gray-700">Rendering AI-Generated Report...</h3>
           <p className="text-gray-500 mt-2">
-            {report.metadata.isRealAI ? '🤖 Real Claude 4 Opus Content' : '⚠️ Static Template'}
+            {report.metadata.isRealAI ? '🤖 Real Claude 4 Sonnet Content' : '⚠️ Static Template'}
           </p>
         </div>
       </div>
@@ -405,7 +405,7 @@ export const DynamicReportRenderer: React.FC<DynamicReportRendererProps> = ({
         )}
         <div className="bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg text-sm">
           {report.metadata.isRealAI ? (
-            <span className="text-green-600 font-medium">🤖 Real Claude 4 Opus</span>
+                          <span className="text-green-600 font-medium">🤖 Real Claude 4 Sonnet</span>
           ) : (
             <span className="text-yellow-600 font-medium">⚠️ Static Template</span>
           )}

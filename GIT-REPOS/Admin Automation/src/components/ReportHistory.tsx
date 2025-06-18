@@ -2,11 +2,139 @@ import React, { useState, useEffect } from 'react';
 import { ReportHistoryService, ReportHistoryItem } from '../services/reportHistoryService';
 import { DynamicReportRenderer } from './pdf/DynamicReportRenderer';
 import { SectionedReportRenderer } from './SectionedReportRenderer';
-import { FileText, Download, Trash2, Eye, Calendar, Clock, Search, Filter } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { FileText, Download, Trash2, Eye, Calendar, Clock, Search, Filter, ExternalLink } from 'lucide-react';
+import { generateAndDownloadPDF } from './PDFGenerator';
 
-export const ReportHistory: React.FC = () => {
+interface ReportHistoryProps {
+  onNavigate?: (section: string) => void;
+}
+
+// Component to display individual sections like during generation
+const SectionedReportViewer: React.FC<{ report: ReportHistoryItem }> = ({ report }) => {
+  const getSectionsData = () => {
+    // Try to get sections from different possible locations
+    if (report.report?.content?.sections) {
+      return report.report.content.sections;
+    }
+    
+    // If not in report.content.sections, try to extract from metadata.sectionProgress
+    if (report.metadata?.sectionProgress) {
+      return Object.entries(report.metadata.sectionProgress)
+        .filter(([_, sectionData]: [string, any]) => sectionData.content && sectionData.content.length > 0)
+        .map(([sectionId, sectionData]: [string, any]) => ({
+          id: sectionId,
+          title: sectionData.title || sectionId,
+          content: sectionData.content || '',
+          category: sectionData.category || 'general'
+        }));
+    }
+    
+    return [];
+  };
+
+  const sections = getSectionsData();
+  
+  if (sections.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto p-8">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
+          <h3 className="text-lg font-semibold text-yellow-800 mb-2">No Sections Found</h3>
+          <p className="text-yellow-700">
+            This report doesn't have any accessible sections to display.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto p-6">
+      {/* Report Summary */}
+      <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{report.workflowName}</h2>
+        <div className="flex items-center gap-4 text-sm text-gray-600">
+          <span>📊 {sections.length} sections generated</span>
+          <span>📅 {new Date(report.createdAt).toLocaleDateString()}</span>
+          {report.metadata?.selectedIndustry?.name && (
+            <span>🏭 {report.metadata.selectedIndustry.name}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Individual Sections */}
+      <div className="space-y-6">
+        {sections.map((section: any, index: number) => (
+          <div key={section.id || index} className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            {/* Section Header */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{section.title}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                      ✅ Generated
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      {section.category || 'General'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    const newWindow = window.open('', '_blank');
+                    if (newWindow) {
+                      newWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                          <title>${section.title} - Full Preview</title>
+                          <meta charset="UTF-8">
+                          <style>
+                            body { margin: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+                            .container { max-width: 800px; margin: 0 auto; }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="container">
+                            <h1>${section.title}</h1>
+                            ${section.content}
+                          </div>
+                        </body>
+                        </html>
+                      `);
+                      newWindow.document.close();
+                    }
+                  }}
+                  className="text-xs bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Full Preview
+                </button>
+              </div>
+            </div>
+
+            {/* Section Content Preview */}
+            <div className="p-6">
+              <div className="bg-gray-50 rounded-lg p-4 border max-h-64 overflow-y-auto">
+                <div 
+                  className="prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{
+                    __html: section.content
+                  }}
+                />
+              </div>
+              <div className="text-xs text-gray-500 mt-2">
+                {section.content.length} characters • Click "Full Preview" to see complete design
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const ReportHistory: React.FC<ReportHistoryProps> = ({ onNavigate }) => {
   const [reports, setReports] = useState<ReportHistoryItem[]>([]);
   const [selectedReport, setSelectedReport] = useState<ReportHistoryItem | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,6 +153,16 @@ export const ReportHistory: React.FC = () => {
     setStorageInfo(ReportHistoryService.getStorageInfo());
   };
 
+  const handleFixStuckReports = () => {
+    const fixedCount = ReportHistoryService.fixStuckReports();
+    if (fixedCount > 0) {
+      alert(`✅ Fixed ${fixedCount} stuck report(s)! They should now appear in your history.`);
+      loadReports();
+    } else {
+      alert('No stuck reports found to fix.');
+    }
+  };
+
   // Filter reports based on search and status
   const filteredReports = reports.filter(report => {
     const matchesSearch = report.workflowName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -34,11 +172,68 @@ export const ReportHistory: React.FC = () => {
   });
 
   const handleViewReport = (report: ReportHistoryItem) => {
-    if (!report.report) {
+    // Check if this is a sectioned report
+    const isSectionedReport = report.metadata?.reportType === 'sectioned';
+    
+    if (isSectionedReport) {
+      // For sectioned reports, always show the sectioned viewer (even if stuck or failed)
+      // This will show individual sections with their content
+      setSelectedReport(report);
+    } else if (!report.report) {
       alert('This report is still being generated. Please wait for it to complete.');
       return;
+    } else {
+      // For legacy reports, show the normal view
+      setSelectedReport(report);
     }
-    setSelectedReport(report);
+  };
+
+  const handleRestoreSectionedReport = (report: ReportHistoryItem) => {
+    // Check if this report has completed sections but is marked as failed
+    if (report.metadata?.reportType === 'sectioned' && 
+        report.metadata.completedSections && 
+        report.metadata.completedSections > 0) {
+      
+      // If it has completed sections, restore it to 'generated' status
+      console.log('🔄 Restoring completed sectioned report:', report.id);
+      
+      // Create a proper report object from the section data
+      const restoredReport = {
+        content: {
+          sections: Object.entries(report.metadata.sectionProgress || {})
+            .filter(([_, sectionData]: [string, any]) => sectionData.status === 'completed')
+            .map(([sectionId, sectionData]: [string, any]) => ({
+              id: sectionId,
+              title: sectionData.title || sectionId,
+              content: sectionData.content || '',
+              category: sectionData.category || 'general'
+            }))
+        },
+        metadata: {
+          title: report.workflowName,
+          industry: report.metadata.selectedIndustry?.name || 'Unknown',
+          totalSections: report.metadata.completedSections,
+          generatedAt: report.createdAt,
+          isRestored: true
+        }
+      };
+      
+      // Update the report in history
+      ReportHistoryService.completeReport(report.id, restoredReport as any);
+      
+      // Reload and show the restored report
+      loadReports();
+      setSelectedReport({
+        ...report,
+        status: 'generated',
+        report: restoredReport as any
+      });
+      
+      console.log('✅ Report restored successfully with', report.metadata.completedSections, 'sections');
+    } else {
+      // For other cases, just view the report
+      setSelectedReport(report);
+    }
   };
 
   const handleCloseReport = () => {
@@ -66,66 +261,18 @@ export const ReportHistory: React.FC = () => {
   const generatePDFFromHistory = async (report: ReportHistoryItem) => {
     setIsGeneratingPDF(true);
     try {
-      // First, we need to render the report to get the DOM element
-      setSelectedReport(report);
+      console.log('🔄 Generating professional PDF for:', report.workflowName);
       
-      // Wait a bit for the component to render
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use the new PDF generator with proper layout controls
+      await generateAndDownloadPDF(report);
       
-      // Check if this is a sectioned report
-      const elementId = report.report?.content?.sections ? 'sectioned-report-content' : 'dynamic-report-content';
-      const element = document.getElementById(elementId);
-      if (!element) {
-        throw new Error('Report content not found');
-      }
-
-      // Capture the rendered component as canvas
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: element.scrollWidth,
-        height: element.scrollHeight
-      });
-
-      // Create PDF
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-
-      let position = 0;
-
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      // Add additional pages if needed
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      // Download the PDF
-      const fileName = `${report.workflowName.replace(/[^a-zA-Z0-9]/g, '_')}_Implementation_Guide.pdf`;
-      pdf.save(fileName);
-
       // Update report status
       ReportHistoryService.updateReportStatus(report.id, 'pdf_created');
       loadReports();
-
+      
+      console.log('✅ PDF generated successfully');
     } catch (error) {
-      console.error('PDF generation failed:', error);
+      console.error('❌ PDF generation failed:', error);
       alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsGeneratingPDF(false);
@@ -185,12 +332,12 @@ export const ReportHistory: React.FC = () => {
                   {isGeneratingPDF ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Generating PDF...
+                      Generating Professional PDF...
                     </>
                   ) : (
                     <>
                       <Download className="w-4 h-4" />
-                      Download PDF
+                      Download Professional PDF
                     </>
                   )}
                 </button>
@@ -207,16 +354,15 @@ export const ReportHistory: React.FC = () => {
         </div>
 
         {/* Render the selected report */}
-        {selectedReport.report ? (
-          // Check if this is a sectioned report
-          selectedReport.report.content?.sections ? (
-            <SectionedReportRenderer report={selectedReport} />
-          ) : (
-            <DynamicReportRenderer 
-              report={selectedReport.report} 
-              onConvertToPDF={() => generatePDFFromHistory(selectedReport)}
-            />
-          )
+        {selectedReport.metadata?.reportType === 'sectioned' ? (
+          // Show sectioned reports with individual section previews
+          <SectionedReportViewer report={selectedReport} />
+        ) : selectedReport.report ? (
+          // Show legacy reports with the dynamic renderer
+          <DynamicReportRenderer 
+            report={selectedReport.report} 
+            onConvertToPDF={() => generatePDFFromHistory(selectedReport)}
+          />
         ) : (
           <div className="max-w-4xl mx-auto p-8">
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
@@ -283,6 +429,12 @@ export const ReportHistory: React.FC = () => {
               <option value="pdf_created">PDF Ready</option>
               <option value="failed">Failed</option>
             </select>
+            <button
+              onClick={handleFixStuckReports}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              🔧 Fix Stuck Reports
+            </button>
             {reports.length > 0 && (
               <button
                 onClick={handleClearHistory}
@@ -322,8 +474,28 @@ export const ReportHistory: React.FC = () => {
                     </h3>
                     <p className="text-sm text-gray-600 mb-2">
                       {report.report?.metadata?.title || 'Report in progress...'}
+                      {report.metadata?.reportType === 'sectioned' && report.metadata.hasFailures && (
+                        <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                          Partial Report
+                        </span>
+                      )}
                     </p>
                     {getStatusBadge(report.status)}
+                    {report.metadata?.reportType === 'sectioned' && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {report.metadata.completedSections || 0}/{report.metadata.totalSections || 0} sections completed
+                        {report.metadata.hasFailures && (
+                          <span className="text-orange-600 ml-2">
+                            • {report.metadata.failedSections} failed
+                          </span>
+                        )}
+                        {report.status === 'failed' && report.metadata.completedSections && report.metadata.completedSections > 0 && (
+                          <span className="text-green-600 ml-2 font-medium">
+                            • Restorable!
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {report.progress !== undefined && report.status !== 'generated' && (
                       <div className="mt-2">
                         <div className="flex justify-between text-xs text-gray-600 mb-1">
@@ -349,11 +521,17 @@ export const ReportHistory: React.FC = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleViewReport(report)}
-                    disabled={!report.report || report.status === 'pending' || report.status === 'generating'}
+                    disabled={report.status === 'pending' || report.status === 'generating'}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                   >
                     <Eye className="w-4 h-4" />
-                    {report.report ? 'View Report' : 'Generating...'}
+                    {report.metadata?.reportType === 'sectioned' && report.metadata.hasFailures 
+                      ? 'Resume & Retry' 
+                      : report.status === 'failed' && report.metadata?.completedSections && report.metadata.completedSections > 0
+                        ? `Restore ${report.metadata.completedSections} Sections`
+                      : report.report 
+                        ? 'View Report' 
+                        : 'Generating...'}
                   </button>
                   <button
                     onClick={() => generatePDFFromHistory(report)}

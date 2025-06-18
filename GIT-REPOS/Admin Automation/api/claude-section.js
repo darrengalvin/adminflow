@@ -35,34 +35,52 @@ export default async function handler(req, res) {
 
     console.log(`🔧 Generating section: ${section.title} for ${industry.name}`);
 
-    // Create focused prompt for individual section
-    const prompt = `Generate a professional HTML section for a business automation report.
+    // Create focused prompt for individual section with dual output format
+    const prompt = `You are a business consultant. Generate content for a report section in STRICT JSON format.
 
 SECTION: ${section.title}
 INDUSTRY: ${industry.name}
 DESCRIPTION: ${section.description}
 
+CRITICAL: You MUST respond with ONLY a valid JSON object. No other text before or after.
+
+The JSON must have this EXACT structure:
+{
+  "htmlContent": "<div class='section'>HTML content with CSS styling for web display</div>",
+  "pdfData": {
+    "title": "Section Title",
+    "keyMetrics": [
+      {"label": "ROI Improvement", "value": "25%", "description": "Expected return on investment"}
+    ],
+    "mainPoints": [
+      "Key business insight with specific details",
+      "Another important point with actionable information"
+    ],
+    "implementationSteps": [
+      {"step": 1, "title": "Initial Assessment", "description": "Conduct comprehensive evaluation", "timeline": "2-3 weeks"}
+    ],
+    "risks": [
+      {"risk": "Implementation delays", "impact": "Medium", "mitigation": "Establish clear timelines"}
+    ],
+    "recommendations": [
+      "Implement automated quality control systems",
+      "Train staff on new procedures"
+    ]
+  }
+}
+
 REQUIREMENTS:
-- Generate complete HTML with embedded CSS
-- Professional business styling
-- Include specific metrics and data
-- Add implementation steps
-- Include risk assessment
-- Use tables and visual elements
+- htmlContent: Complete HTML with embedded CSS for beautiful web display
+- pdfData: Clean structured data with specific metrics, steps, and recommendations
+- All fields must contain realistic business content
+- No placeholder text or generic examples
+- Focus on ${industry.name} industry specifics
 
-IMPORTANT: Respond with HTML only, starting with <div class="report-section"> and ending with </div>.
-
-Include these CSS classes in a <style> tag:
-- .section-header (blue gradient background)
-- .metric-card (for key numbers)
-- .implementation-step (for action items)
-- .highlight-box (for important notes)
-
-Generate a comprehensive, professional section with real business insights.`;
+RESPOND WITH ONLY THE JSON OBJECT - NO MARKDOWN, NO EXPLANATIONS, NO OTHER TEXT.`;
 
     const requestBody = {
-      model: "claude-3-opus-20240229",
-      max_tokens: 4000, // Increased for better content
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4000,
       messages: [{
         role: "user",
         content: prompt
@@ -102,28 +120,86 @@ Generate a comprehensive, professional section with real business insights.`;
       });
     }
 
-    const generatedContent = data.content[0].text;
-
-    // Validate HTML structure
-    const hasHtmlStructure = generatedContent.includes('<html') || generatedContent.includes('<div');
+    let generatedContent = data.content[0].text.trim();
     
-    if (!hasHtmlStructure) {
-      console.warn('⚠️ Generated content may not be valid HTML');
-    }
-
-    console.log(`✅ Section generated successfully: ${generatedContent.length} characters`);
-
-    return res.status(200).json({
-      success: true,
-      content: generatedContent,
-      section: section,
-      metadata: {
-        contentLength: generatedContent.length,
-        hasHtmlStructure,
-        generatedAt: new Date().toISOString(),
-        estimatedPages: section.estimatedPages
+    console.log('🔍 Raw Claude response preview:', generatedContent.substring(0, 200) + '...');
+    
+    // Try to parse as JSON first
+    let parsedContent;
+    try {
+      // More aggressive cleanup of the response
+      let cleanedContent = generatedContent;
+      
+      // Remove any markdown code blocks
+      if (cleanedContent.includes('```')) {
+        cleanedContent = cleanedContent.replace(/```json\s*/g, '').replace(/```\s*/g, '');
       }
-    });
+      
+      // Remove any leading/trailing explanatory text
+      const jsonStart = cleanedContent.indexOf('{');
+      const jsonEnd = cleanedContent.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleanedContent = cleanedContent.substring(jsonStart, jsonEnd + 1);
+      }
+      
+      // Remove any remaining non-JSON text
+      cleanedContent = cleanedContent.trim();
+      
+      console.log('🧹 Cleaned content for JSON parsing:', cleanedContent.substring(0, 200) + '...');
+      
+      parsedContent = JSON.parse(cleanedContent);
+      
+      // Validate the structure
+      if (!parsedContent.htmlContent || !parsedContent.pdfData) {
+        throw new Error('Invalid JSON structure - missing htmlContent or pdfData');
+      }
+      
+      console.log(`✅ Section generated successfully with dual format`);
+      
+      return res.status(200).json({
+        success: true,
+        content: parsedContent.htmlContent, // For backward compatibility
+        htmlContent: parsedContent.htmlContent,
+        pdfData: parsedContent.pdfData,
+        section: section,
+        metadata: {
+          contentLength: parsedContent.htmlContent.length,
+          hasHtmlStructure: true,
+          hasPdfData: true,
+          generatedAt: new Date().toISOString(),
+          estimatedPages: section.estimatedPages
+        }
+      });
+      
+    } catch (parseError) {
+      console.warn('⚠️ Failed to parse as JSON, falling back to HTML-only mode');
+      console.warn('📝 Parse error:', parseError.message);
+      console.warn('🔍 Content that failed to parse:', generatedContent.substring(0, 500) + '...');
+      
+      // Fallback to original HTML-only behavior
+      const hasHtmlStructure = generatedContent.includes('<html') || generatedContent.includes('<div');
+      
+      if (!hasHtmlStructure) {
+        console.warn('⚠️ Generated content may not be valid HTML');
+      }
+
+      console.log(`✅ Section generated successfully (HTML-only fallback): ${generatedContent.length} characters`);
+
+      return res.status(200).json({
+        success: true,
+        content: generatedContent,
+        htmlContent: generatedContent,
+        pdfData: null, // No structured data available
+        section: section,
+        metadata: {
+          contentLength: generatedContent.length,
+          hasHtmlStructure,
+          hasPdfData: false,
+          generatedAt: new Date().toISOString(),
+          estimatedPages: section.estimatedPages
+        }
+      });
+    }
 
   } catch (error) {
     console.error('❌ Section generation error:', error);

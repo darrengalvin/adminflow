@@ -6,17 +6,17 @@ A comprehensive automation platform that helps businesses identify, analyze, and
 
 - **AI-Powered Task Analysis**: Input any business task and get intelligent automation recommendations
 - **Visual Workflow Designer**: Create and manage automation workflows with an intuitive interface
-- **Claude 4 Opus Integration**: Generate comprehensive implementation guides using the most capable AI model
+- **Claude 4 Sonnet Integration**: Generate comprehensive implementation guides using advanced AI with cost efficiency
 - **Professional PDF Reports**: Create outstanding implementation guides with superior UI/UX design
 - **API Testing Tools**: Test and validate automation endpoints in real-time
 - **ROI Analysis**: Calculate time savings, efficiency gains, and financial impact
 
 ## 🤖 NEW: AI-Powered React PDF Generation 
 
-**BREAKTHROUGH UPDATE**: Now features **REAL** Claude 4 Opus API integration with React PDF components!
+**BREAKTHROUGH UPDATE**: Now features **REAL** Claude 4 Sonnet API integration with React PDF components!
 
 ### ✅ What's Been Fixed & Enhanced:
-- **REAL AI API CALLS**: Now makes actual API calls to Claude 4 Opus (the most capable model with superior reasoning!)
+- **REAL AI API CALLS**: Now makes actual API calls to Claude 4 Sonnet (advanced reasoning with cost efficiency!)
 - **REACT PDF COMPONENTS**: Uses @react-pdf/renderer for professional layouts
 - **OUTSTANDING DESIGN ELEMENTS** as requested:
   - ✅ **Consistent margins** - Uniform 40px spacing throughout all pages  
@@ -28,7 +28,7 @@ A comprehensive automation platform that helps businesses identify, analyze, and
 
 ### 🚀 How It Works:
 1. **Click "🤖 Generate AI Report"** button in any workflow
-2. **API calls Claude 4 Opus** with your workflow data  
+2. **API calls Claude 4 Sonnet** with your workflow data  
 3. **AI generates comprehensive analysis** (not fake content!)
 4. **React PDF renders** with outstanding professional design
 5. **Interactive preview** with download functionality
@@ -114,7 +114,7 @@ npm run dev
 
 The platform integrates with various APIs for comprehensive automation:
 
-- **Claude 4 Opus**: Most capable AI model with superior reasoning for content generation
+- **Claude 4 Sonnet**: Advanced AI model with enhanced reasoning and cost efficiency for content generation
 - **Email Services**: SendGrid, Mailchimp, etc.
 - **Database APIs**: RESTful API integrations
 - **Authentication**: OAuth 2.0, API keys
@@ -150,4 +150,4 @@ For support or questions about the AI-powered features:
 
 ---
 
-**Powered by Claude 4 Opus** - The most capable AI model with superior reasoning for comprehensive automation analysis and implementation guidance.
+**Powered by Claude 4 Sonnet** - Advanced AI model with enhanced reasoning and cost efficiency for comprehensive automation analysis and implementation guidance.
