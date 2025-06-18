@@ -177,21 +177,62 @@ app.post('/webhook/${taskData.software.toLowerCase().replace(/\s+/g, '-')}-autom
 });\`,
         "verifiedAPIs": [
           {
-            "name": "${taskData.software} Opportunities API",
+            "name": "${taskData.software} Create Opportunity (API 2.0)",
             "method": "POST",
-            "endpoint": "https://rest.gohighlevel.com/v1/opportunities",
+            "endpoint": "https://services.leadconnectorhq.com/opportunities",
             "authentication": "Bearer token in Authorization header",
-            "rateLimit": "1000/hour (verified Nov 2024)",
-            "documentation": "https://highlevel.stoplight.io/docs/integrations/",
-            "testable": true
+            "rateLimit": "100 requests/10 seconds, 200,000/day (verified Nov 2024)",
+            "documentation": "https://highlevel.stoplight.io/docs/integrations/802093aa63900-create-opportunity",
+            "testable": true,
+            "sampleRequestBody": {
+              "title": "\${new Date().toLocaleDateString()} | ${taskData.taskName || 'Demo Activity'} | 3 people",
+              "pipelineId": "pipeline_6707c4c4e7b4f3001a8b4567",
+              "pipelineStageId": "stage_6707c4c4e7b4f3001a8b4568",
+              "status": "open",
+              "monetaryValue": 5000,
+              "contactId": "contact_6707c4c4e7b4f3001a8b4569",
+              "locationId": "qlmxFY68hrnVjyo8cNQC",
+              "source": "automation",
+              "notes": "Created via ${taskData.taskName || 'automation'} - ${taskData.description || 'automated process'}"
+            },
+            "requiredHeaders": {
+              "Authorization": "Bearer YOUR_GHL_JWT_TOKEN",
+              "Content-Type": "application/json",
+              "Version": "2021-07-28"
+            }
           },
           {
-            "name": "${taskData.software} Contacts API", 
+            "name": "${taskData.software} Get Contacts (API 2.0)", 
             "method": "GET",
-            "endpoint": "https://rest.gohighlevel.com/v1/contacts/lookup",
+            "endpoint": "https://services.leadconnectorhq.com/contacts",
             "purpose": "Find existing contacts before creating opportunities",
             "responseTime": "~200ms average",
-            "successRate": "99.2% uptime"
+            "successRate": "99.2% uptime",
+            "sampleParams": {
+              "limit": "20",
+              "locationId": "qlmxFY68hrnVjyo8cNQC",
+              "query": "demo customer"
+            },
+            "requiredHeaders": {
+              "Authorization": "Bearer YOUR_GHL_JWT_TOKEN",
+              "Version": "2021-07-28"
+            }
+          },
+          {
+            "name": "${taskData.software} Update Opportunity (API 2.0)",
+            "method": "PUT", 
+            "endpoint": "https://services.leadconnectorhq.com/opportunities/{opportunityId}",
+            "purpose": "Update opportunity to 'offer made' stage",
+            "sampleRequestBody": {
+              "pipelineStageId": "stage_offer_made_6707c4c4e7b4f3001a8b456c",
+              "status": "open",
+              "notes": "Stage updated to offer made via automation"
+            },
+            "requiredHeaders": {
+              "Authorization": "Bearer YOUR_GHL_JWT_TOKEN",
+              "Content-Type": "application/json",
+              "Version": "2021-07-28"
+            }
           }
         ],
         "bulletproofErrorHandling": [

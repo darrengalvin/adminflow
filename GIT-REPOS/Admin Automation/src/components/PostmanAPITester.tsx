@@ -51,39 +51,48 @@ interface PostmanAPITesterProps {
   className?: string;
 }
 
+function createNewRequest(): APIRequest {
+  return {
+    id: Date.now().toString(),
+    name: 'New Request',
+    method: 'GET',
+    url: 'https://api.example.com/endpoint',
+    headers: [
+      { key: 'Authorization', value: 'Bearer YOUR_API_KEY', enabled: true },
+      { key: 'Content-Type', value: 'application/json', enabled: true }
+    ],
+    params: [
+      { key: 'limit', value: '10', enabled: true }
+    ],
+    body: JSON.stringify({
+      "name": "Test Request",
+      "data": {
+        "key": "value"
+      }
+    }, null, 2),
+    bodyType: 'json'
+  };
+}
+
 export const PostmanAPITester: React.FC<PostmanAPITesterProps> = ({ 
   initialRequests = [], 
   className = '' 
 }) => {
-  const [requests, setRequests] = useState<APIRequest[]>(
-    initialRequests.length > 0 ? initialRequests : [createNewRequest()]
-  );
-  const [activeRequestId, setActiveRequestId] = useState<string>(requests[0]?.id || '');
+  console.log('🔧 PostmanAPITester initialRequests:', initialRequests);
+  
+  const [requests, setRequests] = useState<APIRequest[]>(() => {
+    const reqs = initialRequests.length > 0 ? initialRequests : [createNewRequest()];
+    console.log('🔧 PostmanAPITester requests:', reqs);
+    return reqs;
+  });
+  const [activeRequestId, setActiveRequestId] = useState<string>(() => {
+    const reqs = initialRequests.length > 0 ? initialRequests : [createNewRequest()];
+    const id = reqs[0]?.id || '';
+    console.log('🔧 PostmanAPITester activeRequestId:', id);
+    return id;
+  });
   const [responses, setResponses] = useState<Record<string, APIResponse>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
-
-  function createNewRequest(): APIRequest {
-    return {
-      id: Date.now().toString(),
-      name: 'New Request',
-      method: 'GET',
-      url: 'https://api.example.com/endpoint',
-      headers: [
-        { key: 'Authorization', value: 'Bearer YOUR_API_KEY', enabled: true },
-        { key: 'Content-Type', value: 'application/json', enabled: true }
-      ],
-      params: [
-        { key: 'limit', value: '10', enabled: true }
-      ],
-      body: JSON.stringify({
-        "name": "Test Request",
-        "data": {
-          "key": "value"
-        }
-      }, null, 2),
-      bodyType: 'json'
-    };
-  }
 
   const activeRequest = requests.find(r => r.id === activeRequestId);
 
@@ -95,65 +104,159 @@ export const PostmanAPITester: React.FC<PostmanAPITesterProps> = ({
     try {
       const startTime = Date.now();
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-
-      const responseTime = Date.now() - startTime;
+      // Build query parameters
+      const enabledParams = activeRequest.params.filter(p => p.enabled && p.key && p.value);
+      const params: Record<string, string> = {};
+      enabledParams.forEach(p => {
+        params[p.key] = p.value;
+      });
       
-      // Mock successful response
-      const mockResponse: APIResponse = {
-        status: 200,
-        statusText: 'OK',
-        headers: {
-          'content-type': 'application/json',
-          'x-ratelimit-remaining': '999',
-          'x-response-time': `${responseTime}ms`
-        },
-        data: {
-          success: true,
-          message: "API request successful",
-          data: {
-            id: Math.floor(Math.random() * 1000),
-            timestamp: new Date().toISOString(),
-            method: activeRequest.method,
-            endpoint: activeRequest.url,
-            authentication: "✅ Valid"
+      // Build headers
+      const enabledHeaders = activeRequest.headers.filter(h => h.enabled && h.key);
+      const headers: Record<string, string> = {};
+      enabledHeaders.forEach(h => {
+        headers[h.key] = h.value;
+      });
+
+      console.log('🚀 Making proxied API call to:', activeRequest.url);
+      console.log('📤 Headers:', headers);
+      console.log('📤 Body:', activeRequest.body);
+      console.log('📤 Params:', params);
+
+      // Check if this is a GoHighLevel API call - use proxy to bypass CORS
+      const isGoHighLevelAPI = activeRequest.url.includes('leadconnectorhq.com') || 
+                               activeRequest.url.includes('gohighlevel.com');
+      
+      let response: Response;
+      let responseData: any;
+      let responseHeaders: Record<string, string> = {};
+      let responseTime: number;
+
+      if (isGoHighLevelAPI) {
+        // Use our proxy endpoint for GoHighLevel API calls
+        const proxyPayload = {
+          method: activeRequest.method,
+          endpoint: activeRequest.url,
+          headers,
+          body: activeRequest.body ? JSON.parse(activeRequest.body) : undefined,
+          params
+        };
+
+        response = await fetch('/api/ghl-proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(proxyPayload)
+        });
+
+        responseTime = Date.now() - startTime;
+        const proxyResponse = await response.json();
+
+        responseData = proxyResponse.data;
+        responseHeaders = proxyResponse.headers || {};
+        
+        // Create a mock response object for consistency
+        response = {
+          status: proxyResponse.status,
+          statusText: proxyResponse.statusText,
+          ok: proxyResponse.success
+        } as Response;
+
+        console.log('📥 Proxied API Response:', proxyResponse);
+      } else {
+        // Direct API call for non-GoHighLevel APIs
+        const queryString = Object.keys(params).length > 0 
+          ? '?' + Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
+          : '';
+
+        const fetchOptions: RequestInit = {
+          method: activeRequest.method,
+          headers,
+        };
+
+        // Add body for methods that support it
+        if (['POST', 'PUT', 'PATCH'].includes(activeRequest.method) && activeRequest.body) {
+          fetchOptions.body = activeRequest.body;
+        }
+
+        response = await fetch(activeRequest.url + queryString, fetchOptions);
+        responseTime = Date.now() - startTime;
+        
+        // Get response headers
+        response.headers.forEach((value, key) => {
+          responseHeaders[key] = value;
+        });
+
+        // Get response data
+        const contentType = response.headers.get('content-type') || '';
+        
+        if (contentType.includes('application/json')) {
+          try {
+            responseData = await response.json();
+          } catch (e) {
+            responseData = { error: 'Invalid JSON response', rawResponse: await response.text() };
           }
-        },
+        } else {
+          responseData = { textResponse: await response.text() };
+        }
+
+        console.log('📥 Direct API Response:', { status: response.status, data: responseData });
+      }
+
+      // Calculate response size
+      const responseSize = new Blob([JSON.stringify(responseData)]).size;
+      const sizeFormatted = responseSize > 1024 
+        ? `${(responseSize / 1024).toFixed(1)} KB`
+        : `${responseSize} B`;
+
+      const apiResponse: APIResponse = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+        data: responseData,
         responseTime,
-        size: '1.2 KB'
+        size: sizeFormatted
       };
 
       setResponses(prev => ({
         ...prev,
-        [activeRequest.id]: mockResponse
+        [activeRequest.id]: apiResponse
       }));
 
-    } catch (error) {
-      const mockErrorResponse: APIResponse = {
-        status: 401,
-        statusText: 'Unauthorized',
-        headers: {
-          'content-type': 'application/json'
-        },
+    } catch (error: any) {
+      console.error('❌ API Request failed:', error);
+      
+      const errorResponse: APIResponse = {
+        status: 0,
+        statusText: 'Network Error',
+        headers: {},
         data: {
-          error: "Invalid API key",
-          message: "Please provide a valid authorization token"
+          error: error.message,
+          type: error.name,
+          details: 'This could be due to CORS restrictions, network issues, or invalid API credentials'
         },
-        responseTime: 500,
-        size: '0.3 KB'
+        responseTime: Date.now() - Date.now(),
+        size: '0 B'
       };
 
       setResponses(prev => ({
         ...prev,
-        [activeRequest.id]: mockErrorResponse
+        [activeRequest.id]: errorResponse
       }));
     }
 
     setLoading(prev => ({ ...prev, [activeRequest.id]: false }));
   };
 
-  if (!activeRequest) return null;
+  if (!activeRequest) {
+    console.log('❌ PostmanAPITester: No active request found');
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p className="text-red-700">❌ No active request found. Requests: {requests.length}, ActiveID: {activeRequestId}</p>
+      </div>
+    );
+  }
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-slate-200 ${className}`}>
@@ -170,6 +273,14 @@ export const PostmanAPITester: React.FC<PostmanAPITesterProps> = ({
         <div className="flex items-center space-x-2 mb-4">
           <select
             value={activeRequest.method}
+            onChange={(e) => {
+              const newMethod = e.target.value as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+              setRequests(prev => prev.map(req => 
+                req.id === activeRequestId 
+                  ? { ...req, method: newMethod }
+                  : req
+              ));
+            }}
             className="px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium"
           >
             <option value="GET">GET</option>
@@ -181,6 +292,13 @@ export const PostmanAPITester: React.FC<PostmanAPITesterProps> = ({
           <input
             type="text"
             value={activeRequest.url}
+            onChange={(e) => {
+              setRequests(prev => prev.map(req => 
+                req.id === activeRequestId 
+                  ? { ...req, url: e.target.value }
+                  : req
+              ));
+            }}
             placeholder="Enter request URL"
             className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm"
           />
@@ -197,6 +315,90 @@ export const PostmanAPITester: React.FC<PostmanAPITesterProps> = ({
             <span>{loading[activeRequest.id] ? 'Sending...' : 'Send'}</span>
           </button>
         </div>
+
+        {/* Headers Section */}
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-slate-700 mb-2">Headers</h4>
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            {activeRequest.headers.map((header, index) => (
+              <div key={index} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={header.enabled}
+                  onChange={(e) => {
+                    setRequests(prev => prev.map(req => 
+                      req.id === activeRequestId 
+                        ? { 
+                            ...req, 
+                            headers: req.headers.map((h, i) => 
+                              i === index ? { ...h, enabled: e.target.checked } : h
+                            )
+                          }
+                        : req
+                    ));
+                  }}
+                  className="rounded"
+                />
+                <input
+                  type="text"
+                  value={header.key}
+                  onChange={(e) => {
+                    setRequests(prev => prev.map(req => 
+                      req.id === activeRequestId 
+                        ? { 
+                            ...req, 
+                            headers: req.headers.map((h, i) => 
+                              i === index ? { ...h, key: e.target.value } : h
+                            )
+                          }
+                        : req
+                    ));
+                  }}
+                  placeholder="Header name"
+                  className="px-2 py-1 border border-slate-300 rounded text-xs flex-1"
+                />
+                <input
+                  type="text"
+                  value={header.value}
+                  onChange={(e) => {
+                    setRequests(prev => prev.map(req => 
+                      req.id === activeRequestId 
+                        ? { 
+                            ...req, 
+                            headers: req.headers.map((h, i) => 
+                              i === index ? { ...h, value: e.target.value } : h
+                            )
+                          }
+                        : req
+                    ));
+                  }}
+                  placeholder="Header value"
+                  className="px-2 py-1 border border-slate-300 rounded text-xs flex-1"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Request Body for POST/PUT/PATCH */}
+        {['POST', 'PUT', 'PATCH'].includes(activeRequest.method) && (
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-slate-700 mb-2">Request Body</h4>
+            <textarea
+              value={activeRequest.body}
+              onChange={(e) => {
+                setRequests(prev => prev.map(req => 
+                  req.id === activeRequestId 
+                    ? { ...req, body: e.target.value }
+                    : req
+                ));
+              }}
+              placeholder="Request body (JSON)"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono"
+              rows={8}
+            />
+          </div>
+        )}
 
         {/* Response */}
         {responses[activeRequestId] && (

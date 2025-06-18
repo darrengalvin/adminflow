@@ -110,36 +110,184 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
   const generateAPITestRequests = (taskData: any) => {
     const requests = [];
     
-    // Add requests from verified APIs
-    if (taskData.completeSolution?.liveImplementation?.verifiedAPIs) {
-      taskData.completeSolution.liveImplementation.verifiedAPIs.forEach((api: any, index: number) => {
-        requests.push({
-          id: `api-${index}`,
-          name: api.name || `${api.method} ${api.endpoint}`,
-          method: api.method || 'GET',
-          url: api.endpoint || 'https://api.example.com/endpoint',
-          headers: [
-            { key: 'Authorization', value: 'Bearer YOUR_API_KEY', enabled: true },
-            { key: 'Content-Type', value: 'application/json', enabled: true }
-          ],
-          params: [
-            { key: 'limit', value: '10', enabled: true }
-          ],
-          body: api.method === 'POST' ? JSON.stringify({
-            "name": taskData.taskName || "Test Request",
-            "data": {
-              "automated": true,
-              "timestamp": new Date().toISOString()
-            }
-          }, null, 2) : '',
-          bodyType: api.method === 'POST' ? 'json' : 'none'
+    console.log('🔍 Generating API requests from taskData:', taskData);
+    
+    // Look for APIs in multiple places from Claude's response
+    const apiSources = [
+      taskData.completeSolution?.liveImplementation?.verifiedAPIs || [],
+      taskData.liveAPITesting?.testableEndpoints || [],
+      taskData.apiEndpoints || []
+    ];
+    
+    let foundAPIs = false;
+    
+    // Process APIs from all sources
+    apiSources.forEach((apiList, sourceIndex) => {
+      if (Array.isArray(apiList) && apiList.length > 0) {
+        console.log(`✅ Found ${apiList.length} APIs in source ${sourceIndex + 1}:`, apiList);
+        foundAPIs = true;
+        
+                 apiList.forEach((api: any, index: number) => {
+           const method = api.method || 'GET';
+           const endpoint = api.endpoint || api.url || 'https://api.example.com/endpoint';
+           
+           // Use AI-provided sample data or create intelligent fallbacks
+           let requestBody = '';
+           if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+             if (api.sampleRequestBody) {
+               // Use the AI-provided sample request body
+               requestBody = JSON.stringify(api.sampleRequestBody, null, 2);
+             } else if (api.sampleData) {
+               requestBody = typeof api.sampleData === 'string' ? api.sampleData : JSON.stringify(api.sampleData, null, 2);
+             } else {
+               // Intelligent fallback based on endpoint and task
+               if (endpoint.includes('opportunities') || endpoint.includes('deals')) {
+                 requestBody = JSON.stringify({
+                   "contactId": "contact_6707c4c4e7b4f3001a8b4567",
+                   "name": `${new Date().toLocaleDateString()} | ${taskData.taskName || 'Demo Opportunity'} | 3 people`,
+                   "pipelineId": "pipeline_6707c4c4e7b4f3001a8b4568",
+                   "pipelineStageId": "stage_6707c4c4e7b4f3001a8b4569", 
+                   "status": "open",
+                   "monetaryValue": 5000,
+                   "source": "api-test",
+                   "notes": `Created via ${taskData.taskName || 'automation'} - ${taskData.description || 'API testing'}`
+                 }, null, 2);
+               } else if (endpoint.includes('contacts')) {
+                 requestBody = JSON.stringify({
+                   "firstName": "Demo",
+                   "lastName": "Customer",
+                   "email": "demo@example.com",
+                   "phone": "+1234567890",
+                   "source": "api-test",
+                   "customFields": {
+                     "task_source": taskData.taskName || "API Test"
+                   }
+                 }, null, 2);
+               } else {
+                 requestBody = JSON.stringify({
+                   "name": taskData.taskName || "Test Request",
+                   "description": taskData.description || "API test request",
+                   "automated": true,
+                   "timestamp": new Date().toISOString(),
+                   "source": "api-testing-lab"
+                 }, null, 2);
+               }
+             }
+           }
+           
+           // Use AI-provided headers or intelligent defaults
+           let headers = [];
+           if (api.requiredHeaders) {
+             // Use AI-provided required headers
+             headers = Object.entries(api.requiredHeaders).map(([key, value]) => ({
+               key,
+               value: value as string,
+               enabled: true
+             }));
+           } else {
+             // Default headers
+             headers = [
+               { key: 'Authorization', value: 'Bearer YOUR_GHL_API_KEY', enabled: true },
+               { key: 'Content-Type', value: 'application/json', enabled: true }
+             ];
+             
+             // Add version header for GoHighLevel
+             if (endpoint.includes('gohighlevel.com') || endpoint.includes('rest.gohighlevel')) {
+               headers.push({ key: 'Version', value: '2021-07-28', enabled: true });
+             }
+           }
+           
+           // Use AI-provided params or intelligent defaults  
+           let params = [];
+           if (method === 'GET') {
+             if (api.sampleParams) {
+               params = Object.entries(api.sampleParams).map(([key, value]) => ({
+                 key,
+                 value: value as string,
+                 enabled: true
+               }));
+             } else {
+               params = [
+                 { key: 'limit', value: '20', enabled: true },
+                 { key: 'locationId', value: 'location_6707c4c4e7b4f3001a8b456b', enabled: true }
+               ];
+             }
+           }
+           
+           requests.push({
+             id: `api-${sourceIndex}-${index}`,
+             name: api.name || `${method} ${endpoint.split('/').pop()}`,
+             method: method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+             url: endpoint,
+             headers,
+             params,
+             body: requestBody,
+             bodyType: method === 'GET' ? 'none' : 'json'
+           });
         });
-      });
-    }
+      }
+    });
 
-    // Add a sample request based on the software
-    if (requests.length === 0) {
-      const software = taskData.currentProcess?.software || taskData.software || 'API';
+    // Add intelligent fallback requests if no APIs found from Claude
+    if (!foundAPIs) {
+      console.log('⚠️ No APIs found from Claude response, generating intelligent fallbacks');
+    }
+    
+    // Detect software from multiple sources
+    const software = taskData.researchFindings?.apiAvailability?.includes('GoHighLevel') ? 'GoHighLevel' : 
+                    taskData.currentProcess?.software || 
+                    taskData.software || 
+                    taskData.taskName?.includes('GHL') ? 'GoHighLevel' :
+                    taskData.description?.toLowerCase().includes('gohighlevel') ? 'GoHighLevel' :
+                    'API';
+    
+    console.log('🎯 Detected software:', software);
+    
+    // GoHighLevel specific requests (always add these for GHL tasks)
+    if (software.includes('GoHighLevel') || software.includes('GHL') || !foundAPIs) {
+      requests.push({
+        id: 'ghl-opportunities',
+        name: 'GoHighLevel - Create Opportunity (API 2.0)',
+        method: 'POST',
+        url: 'https://services.leadconnectorhq.com/opportunities',
+        headers: [
+          { key: 'Authorization', value: 'Bearer YOUR_GHL_JWT_TOKEN', enabled: true },
+          { key: 'Content-Type', value: 'application/json', enabled: true },
+          { key: 'Version', value: '2021-07-28', enabled: true }
+        ],
+        params: [],
+        body: JSON.stringify({
+          "title": `${new Date().toLocaleDateString()} | ${taskData.taskName || 'Automation Test'} | 1 person`,
+          "pipelineId": "pipeline_6707c4c4e7b4f3001a8b4567",
+          "pipelineStageId": "stage_6707c4c4e7b4f3001a8b4568",
+          "status": "open",
+          "monetaryValue": 5000,
+          "contactId": "contact_6707c4c4e7b4f3001a8b4569",
+          "locationId": "qlmxFY68hrnVjyo8cNQC",
+          "source": "automation",
+          "notes": `Created via ${taskData.taskName || 'automation'} - API testing`
+        }, null, 2),
+        bodyType: 'json'
+      });
+      
+      requests.push({
+        id: 'ghl-contacts',
+        name: 'GoHighLevel - Get Contacts (API 2.0)',
+        method: 'GET',
+        url: 'https://services.leadconnectorhq.com/contacts',
+        headers: [
+          { key: 'Authorization', value: 'Bearer YOUR_GHL_JWT_TOKEN', enabled: true },
+          { key: 'Version', value: '2021-07-28', enabled: true }
+        ],
+        params: [
+          { key: 'limit', value: '20', enabled: true },
+          { key: 'locationId', value: 'qlmxFY68hrnVjyo8cNQC', enabled: true }
+        ],
+        body: '',
+        bodyType: 'none'
+      });
+    } else {
+      // Generic API requests
       requests.push({
         id: 'sample-1',
         name: `${software} API Test`,
@@ -177,6 +325,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
       });
     }
 
+    console.log('🚀 Generated API requests:', requests);
     return requests;
   };
 
@@ -1451,11 +1600,26 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
                   </div>
                 )}
 
-                {/* API Testing Lab */}
-                <PostmanAPITester 
-                  initialRequests={generateAPITestRequests(taskData)}
-                  className="mb-6"
-                />
+                {/* API Testing Lab - Always Show */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                    <span className="flex items-center space-x-2">
+                      <TestTube className="h-5 w-5 text-purple-600" />
+                      <span>🧪 API Testing Lab</span>
+                    </span>
+                  </h3>
+                  <p className="text-slate-600 mb-6">Test the APIs from your automation solution with this Postman-like interface.</p>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-blue-700">
+                      🔍 Debug: Generated {generateAPITestRequests(taskData).length} API requests
+                    </p>
+                  </div>
+                  
+                  <PostmanAPITester 
+                    initialRequests={generateAPITestRequests(taskData)}
+                  />
+                </div>
               </div>
             </div>
           </div>
