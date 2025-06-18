@@ -191,9 +191,9 @@ export function WorkflowDesigner({ workflows: propWorkflows, onNavigateToAnalysi
     }
   };
 
-  const filteredWorkflows = workflows.filter(workflow => {
-    const matchesSearch = workflow.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         workflow.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredWorkflows = (workflows || []).filter(workflow => {
+    const matchesSearch = workflow.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         workflow.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || workflow.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -217,7 +217,7 @@ export function WorkflowDesigner({ workflows: propWorkflows, onNavigateToAnalysi
 
   // Show workflow details
   if (selectedWorkflow) {
-    const workflow = workflows.find(w => w.id === selectedWorkflow);
+    const workflow = (workflows || []).find(w => w.id === selectedWorkflow);
     if (workflow) {
       return (
         <WorkflowDetails
@@ -361,7 +361,7 @@ export function WorkflowDesigner({ workflows: propWorkflows, onNavigateToAnalysi
             </p>
           </div>
           {/* Only show header buttons when there are workflows */}
-          {workflows.length > 0 && (
+          {(workflows || []).length > 0 && (
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <button 
                 onClick={() => {
@@ -514,7 +514,7 @@ export function WorkflowDesigner({ workflows: propWorkflows, onNavigateToAnalysi
         )}
 
         {/* Workflows Grid */}
-        {workflows.length > 0 ? (
+        {(workflows || []).length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredWorkflows.map((workflow) => (
               <div
