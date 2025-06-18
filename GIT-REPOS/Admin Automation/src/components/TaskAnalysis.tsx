@@ -761,8 +761,9 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
     console.log('🔄 openWorkflowChooser called with:', { task, analysisData });
     
     try {
-      // Load existing workflows
-      const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+      // Load existing workflows using the same key as WorkflowDesigner
+      const workflowsData = JSON.parse(localStorage.getItem('automationWorkflows') || '{}');
+      const workflows = Object.values(workflowsData) as Workflow[];
       console.log('📋 Loaded workflows:', workflows);
       setExistingWorkflows(workflows);
       

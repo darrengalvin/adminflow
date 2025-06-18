@@ -34,6 +34,23 @@ function App() {
   // Load workflows from localStorage on app start
   useEffect(() => {
     try {
+      // First, migrate any workflows from old 'workflows' key to new 'automationWorkflows' key
+      const oldWorkflows = localStorage.getItem('workflows');
+      const newWorkflows = localStorage.getItem('automationWorkflows');
+      
+      if (oldWorkflows && !newWorkflows) {
+        console.log('🔄 Migrating workflows from old storage format...');
+        const oldWorkflowsList = JSON.parse(oldWorkflows) as Workflow[];
+        const workflowsData = oldWorkflowsList.reduce((acc, workflow) => {
+          acc[workflow.id] = workflow;
+          return acc;
+        }, {} as Record<string, Workflow>);
+        localStorage.setItem('automationWorkflows', JSON.stringify(workflowsData));
+        localStorage.removeItem('workflows'); // Clean up old storage
+        console.log('✅ Migrated', oldWorkflowsList.length, 'workflows to new format');
+      }
+
+      // Load workflows from the correct key
       const savedWorkflows = localStorage.getItem('automationWorkflows');
       if (savedWorkflows) {
         const workflowsData = JSON.parse(savedWorkflows);
