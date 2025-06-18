@@ -34,30 +34,42 @@ function App() {
   // Load workflows from localStorage on app start
   useEffect(() => {
     try {
-      // First, migrate any workflows from old 'workflows' key to new 'automationWorkflows' key
+      // Merge workflows from both old 'workflows' key and new 'automationWorkflows' key
       const oldWorkflows = localStorage.getItem('workflows');
       const newWorkflows = localStorage.getItem('automationWorkflows');
       
-      if (oldWorkflows && !newWorkflows) {
-        console.log('🔄 Migrating workflows from old storage format...');
+      let allWorkflows: Record<string, Workflow> = {};
+      
+      // Load existing workflows from new format
+      if (newWorkflows) {
+        allWorkflows = JSON.parse(newWorkflows);
+        console.log('📦 Loaded existing workflows from automationWorkflows:', Object.keys(allWorkflows).length);
+      }
+      
+      // Merge workflows from old format
+      if (oldWorkflows) {
         const oldWorkflowsList = JSON.parse(oldWorkflows) as Workflow[];
-        const workflowsData = oldWorkflowsList.reduce((acc, workflow) => {
-          acc[workflow.id] = workflow;
-          return acc;
-        }, {} as Record<string, Workflow>);
-        localStorage.setItem('automationWorkflows', JSON.stringify(workflowsData));
-        localStorage.removeItem('workflows'); // Clean up old storage
-        console.log('✅ Migrated', oldWorkflowsList.length, 'workflows to new format');
+        console.log('🔄 Found workflows in old format:', oldWorkflowsList.length);
+        
+        oldWorkflowsList.forEach(workflow => {
+          if (!allWorkflows[workflow.id]) {
+            allWorkflows[workflow.id] = workflow;
+            console.log('➕ Added workflow from old storage:', workflow.name);
+          }
+        });
+        
+        // Save merged workflows and clean up old storage
+        localStorage.setItem('automationWorkflows', JSON.stringify(allWorkflows));
+        localStorage.removeItem('workflows');
+        console.log('✅ Merged and cleaned up old workflow storage');
       }
 
-      // Load workflows from the correct key
-      const savedWorkflows = localStorage.getItem('automationWorkflows');
-      if (savedWorkflows) {
-        const workflowsData = JSON.parse(savedWorkflows);
-        const workflowsList = Object.values(workflowsData) as Workflow[];
-        console.log('🚀 App startup: Loaded', workflowsList.length, 'workflows from localStorage');
-        setWorkflows(workflowsList);
-      }
+      // Set workflows state
+      const workflowsList = Object.values(allWorkflows) as Workflow[];
+      console.log('🚀 App startup: Total workflows loaded:', workflowsList.length);
+      console.log('📋 Workflow names:', workflowsList.map(w => w.name));
+      setWorkflows(workflowsList);
+      
     } catch (error) {
       console.error('Error loading workflows on app startup:', error);
     }
