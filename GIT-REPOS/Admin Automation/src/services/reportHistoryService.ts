@@ -2,19 +2,99 @@ import { AIGeneratedReport } from './claudeService';
 
 export interface ReportHistoryItem {
   id: string;
-  report: AIGeneratedReport;
+  report: AIGeneratedReport | null; // Allow null for pending reports
   createdAt: string;
   workflowName: string;
-  status: 'generated' | 'pdf_created';
+  status: 'pending' | 'generating' | 'generated' | 'pdf_created' | 'failed';
   pdfUrl?: string;
   previewImage?: string;
+  progress?: number;
+  phase?: string;
+  error?: string;
 }
 
 export class ReportHistoryService {
   private static readonly STORAGE_KEY = 'adminflow_report_history';
   private static readonly MAX_REPORTS = 50; // Keep last 50 reports
 
-  // Save a new report to history
+  // Create a pending report entry immediately when generation starts
+  static createPendingReport(workflowName: string): string {
+    const reportId = this.generateReportId();
+    const historyItem: ReportHistoryItem = {
+      id: reportId,
+      report: null,
+      createdAt: new Date().toISOString(),
+      workflowName,
+      status: 'pending',
+      progress: 0,
+      phase: 'Initializing...'
+    };
+
+    const history = this.getHistory();
+    history.unshift(historyItem);
+    
+    // Keep only the most recent reports
+    if (history.length > this.MAX_REPORTS) {
+      history.splice(this.MAX_REPORTS);
+    }
+    
+    this.saveHistory(history);
+    return reportId;
+  }
+
+  // Update report progress and status
+  static updateReportProgress(reportId: string, progress: number, phase: string, status?: 'generating' | 'generated' | 'failed'): void {
+    const history = this.getHistory();
+    const reportIndex = history.findIndex(item => item.id === reportId);
+    
+    if (reportIndex !== -1) {
+      history[reportIndex].progress = progress;
+      history[reportIndex].phase = phase;
+      if (status) {
+        history[reportIndex].status = status;
+      }
+      this.saveHistory(history);
+    }
+  }
+
+  // Complete report with final data
+  static completeReport(reportId: string, report: AIGeneratedReport): void {
+    const history = this.getHistory();
+    const reportIndex = history.findIndex(item => item.id === reportId);
+    
+    if (reportIndex !== -1) {
+      history[reportIndex].report = report;
+      history[reportIndex].status = 'generated';
+      history[reportIndex].progress = 100;
+      history[reportIndex].phase = 'Complete';
+      this.saveHistory(history);
+    }
+  }
+
+  // Mark report as failed
+  static markReportFailed(reportId: string, error: string): void {
+    const history = this.getHistory();
+    const reportIndex = history.findIndex(item => item.id === reportId);
+    
+    if (reportIndex !== -1) {
+      history[reportIndex].status = 'failed';
+      history[reportIndex].error = error;
+      this.saveHistory(history);
+    }
+  }
+
+  // Update report status (used by PDF generation)
+  static updateReportStatus(reportId: string, status: 'pdf_created'): void {
+    const history = this.getHistory();
+    const reportIndex = history.findIndex(item => item.id === reportId);
+    
+    if (reportIndex !== -1) {
+      history[reportIndex].status = status;
+      this.saveHistory(history);
+    }
+  }
+
+  // Save a new report to history (legacy method for backward compatibility)
   static saveReport(report: AIGeneratedReport, workflowName: string): string {
     const reportId = this.generateReportId();
     const historyItem: ReportHistoryItem = {
@@ -22,7 +102,9 @@ export class ReportHistoryService {
       report,
       createdAt: new Date().toISOString(),
       workflowName,
-      status: 'generated'
+      status: 'generated',
+      progress: 100,
+      phase: 'Complete'
     };
 
     const history = this.getHistory();

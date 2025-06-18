@@ -9,7 +9,7 @@ export const ReportHistory: React.FC = () => {
   const [reports, setReports] = useState<ReportHistoryItem[]>([]);
   const [selectedReport, setSelectedReport] = useState<ReportHistoryItem | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'generated' | 'pdf_created'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'generating' | 'generated' | 'pdf_created' | 'failed'>('all');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [storageInfo, setStorageInfo] = useState({ totalReports: 0, storageSize: '0 MB' });
 
@@ -33,6 +33,10 @@ export const ReportHistory: React.FC = () => {
   });
 
   const handleViewReport = (report: ReportHistoryItem) => {
+    if (!report.report) {
+      alert('This report is still being generated. Please wait for it to complete.');
+      return;
+    }
     setSelectedReport(report);
   };
 
@@ -132,10 +136,16 @@ export const ReportHistory: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'pending':
+        return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Pending</span>;
+      case 'generating':
+        return <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full animate-pulse">Generating...</span>;
       case 'generated':
-        return <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Generated</span>;
+        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Generated</span>;
       case 'pdf_created':
-        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">PDF Ready</span>;
+        return <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full">PDF Ready</span>;
+      case 'failed':
+        return <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Failed</span>;
       default:
         return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Unknown</span>;
     }
@@ -194,10 +204,36 @@ export const ReportHistory: React.FC = () => {
         </div>
 
         {/* Render the selected report */}
-        <DynamicReportRenderer 
-          report={selectedReport.report} 
-          onConvertToPDF={() => generatePDFFromHistory(selectedReport)}
-        />
+        {selectedReport.report ? (
+          <DynamicReportRenderer 
+            report={selectedReport.report} 
+            onConvertToPDF={() => generatePDFFromHistory(selectedReport)}
+          />
+        ) : (
+          <div className="max-w-4xl mx-auto p-8">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-yellow-800 mb-2">Report Still Generating</h3>
+              <p className="text-yellow-700">
+                This report is still being generated. Please check back in a few minutes.
+              </p>
+              {selectedReport.progress !== undefined && (
+                <div className="mt-4 max-w-md mx-auto">
+                  <div className="flex justify-between text-sm text-yellow-700 mb-2">
+                    <span>{selectedReport.phase || 'Processing...'}</span>
+                    <span>{selectedReport.progress}%</span>
+                  </div>
+                  <div className="w-full bg-yellow-200 rounded-full h-2">
+                    <div 
+                      className="bg-yellow-600 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${selectedReport.progress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -233,8 +269,11 @@ export const ReportHistory: React.FC = () => {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Reports</option>
-              <option value="generated">Generated Only</option>
+              <option value="pending">Pending</option>
+              <option value="generating">Generating</option>
+              <option value="generated">Generated</option>
               <option value="pdf_created">PDF Ready</option>
+              <option value="failed">Failed</option>
             </select>
             {reports.length > 0 && (
               <button
@@ -274,9 +313,23 @@ export const ReportHistory: React.FC = () => {
                       {report.workflowName}
                     </h3>
                     <p className="text-sm text-gray-600 mb-2">
-                      {report.report.metadata.title}
+                      {report.report?.metadata?.title || 'Report in progress...'}
                     </p>
                     {getStatusBadge(report.status)}
+                    {report.progress !== undefined && report.status !== 'generated' && (
+                      <div className="mt-2">
+                        <div className="flex justify-between text-xs text-gray-600 mb-1">
+                          <span>{report.phase || 'Processing...'}</span>
+                          <span>{report.progress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                          <div 
+                            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
+                            style={{ width: `${report.progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -288,15 +341,16 @@ export const ReportHistory: React.FC = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleViewReport(report)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                    disabled={!report.report || report.status === 'pending' || report.status === 'generating'}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                   >
                     <Eye className="w-4 h-4" />
-                    View Report
+                    {report.report ? 'View Report' : 'Generating...'}
                   </button>
                   <button
                     onClick={() => generatePDFFromHistory(report)}
-                    disabled={isGeneratingPDF}
-                    className="bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                    disabled={isGeneratingPDF || !report.report || report.status === 'pending' || report.status === 'generating'}
+                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
                   >
                     <Download className="w-4 h-4" />
                     PDF

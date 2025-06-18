@@ -42,6 +42,10 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
     setProgress(0);
     setDynamicStatus(null);
     
+    // Create pending report entry immediately
+    const reportId = ReportHistoryService.createPendingReport(workflowData.workflowName);
+    console.log('📚 Created pending report in history with ID:', reportId);
+    
     // Cleanup any existing status updates
     if (statusCleanupRef.current) {
       statusCleanupRef.current();
@@ -52,6 +56,9 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
       setCurrentPhase('🔄 Initializing Claude 4 Opus...');
       setProgress(10);
       setEstimatedTimeRemaining('5-10 seconds');
+      
+      // Update report progress in history
+      ReportHistoryService.updateReportProgress(reportId, 10, '🔄 Initializing Claude 4 Opus...', 'generating');
       
       // Start dynamic status updates for initializing phase
       statusCleanupRef.current = statusService.startStatusUpdates('initializing', (status) => {
@@ -64,6 +71,9 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
       setCurrentPhase('🤖 Generating React Component with Claude 4 Opus...');
       setProgress(30);
       setEstimatedTimeRemaining('90-120 seconds');
+      
+      // Update report progress in history
+      ReportHistoryService.updateReportProgress(reportId, 30, '🤖 Generating React Component with Claude 4 Opus...');
       
       // Stop initializing updates and start generating updates
       if (statusCleanupRef.current) {
@@ -82,6 +92,9 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
       setProgress(70);
       setEstimatedTimeRemaining('10-15 seconds');
       
+      // Update report progress in history
+      ReportHistoryService.updateReportProgress(reportId, 70, '⚙️ Processing AI-generated component...');
+      
       // Switch to processing status updates
       if (statusCleanupRef.current) {
         statusCleanupRef.current();
@@ -97,6 +110,9 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
       setCurrentPhase('🎨 Rendering beautiful report...');
       setProgress(90);
       setEstimatedTimeRemaining('5-8 seconds');
+      
+      // Update report progress in history
+      ReportHistoryService.updateReportProgress(reportId, 90, '🎨 Rendering beautiful report...');
       
       // Switch to rendering status updates
       if (statusCleanupRef.current) {
@@ -122,9 +138,9 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
       
       setGeneratedReport(report);
       
-      // Save report to history automatically
-      const reportId = ReportHistoryService.saveReport(report, workflowData.workflowName);
-      console.log('📚 Report saved to history with ID:', reportId);
+      // Complete the report in history with final data
+      ReportHistoryService.completeReport(reportId, report);
+      console.log('📚 Report completed in history with ID:', reportId);
       
       onGenerateReport?.(report);
       
@@ -134,6 +150,9 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
     } catch (err) {
       console.error('Report generation failed:', err);
       setError(err.message || 'Failed to generate report');
+      
+      // Mark report as failed in history
+      ReportHistoryService.markReportFailed(reportId, err.message || 'Failed to generate report');
       
       // Cleanup status updates on error
       if (statusCleanupRef.current) {
