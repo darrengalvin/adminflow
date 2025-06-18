@@ -4,6 +4,7 @@ import { generateTaskAnalysisPDF } from '../utils/pdfGenerator';
 import claudeApi from '../services/claudeApi';
 import { useNotifications, NotificationManager } from './CustomNotification';
 import { APITester } from './APITester';
+import { PostmanAPITester } from './PostmanAPITester';
 import { 
   ArrowLeft, 
   ArrowRight,
@@ -104,6 +105,80 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
 
   // Custom notifications
   const { notifications, removeNotification, showSuccess, showError, showAI } = useNotifications();
+
+  // Generate API test requests from automation analysis
+  const generateAPITestRequests = (taskData: any) => {
+    const requests = [];
+    
+    // Add requests from verified APIs
+    if (taskData.completeSolution?.liveImplementation?.verifiedAPIs) {
+      taskData.completeSolution.liveImplementation.verifiedAPIs.forEach((api: any, index: number) => {
+        requests.push({
+          id: `api-${index}`,
+          name: api.name || `${api.method} ${api.endpoint}`,
+          method: api.method || 'GET',
+          url: api.endpoint || 'https://api.example.com/endpoint',
+          headers: [
+            { key: 'Authorization', value: 'Bearer YOUR_API_KEY', enabled: true },
+            { key: 'Content-Type', value: 'application/json', enabled: true }
+          ],
+          params: [
+            { key: 'limit', value: '10', enabled: true }
+          ],
+          body: api.method === 'POST' ? JSON.stringify({
+            "name": taskData.taskName || "Test Request",
+            "data": {
+              "automated": true,
+              "timestamp": new Date().toISOString()
+            }
+          }, null, 2) : '',
+          bodyType: api.method === 'POST' ? 'json' : 'none'
+        });
+      });
+    }
+
+    // Add a sample request based on the software
+    if (requests.length === 0) {
+      const software = taskData.currentProcess?.software || taskData.software || 'API';
+      requests.push({
+        id: 'sample-1',
+        name: `${software} API Test`,
+        method: 'GET',
+        url: `https://api.${software.toLowerCase().replace(/\s+/g, '')}.com/v1/data`,
+        headers: [
+          { key: 'Authorization', value: 'Bearer YOUR_API_KEY', enabled: true },
+          { key: 'Content-Type', value: 'application/json', enabled: true }
+        ],
+        params: [
+          { key: 'limit', value: '10', enabled: true },
+          { key: 'format', value: 'json', enabled: true }
+        ],
+        body: '',
+        bodyType: 'none'
+      });
+      
+      requests.push({
+        id: 'sample-2',
+        name: `Create ${taskData.taskName || 'Item'}`,
+        method: 'POST',
+        url: `https://api.${software.toLowerCase().replace(/\s+/g, '')}.com/v1/create`,
+        headers: [
+          { key: 'Authorization', value: 'Bearer YOUR_API_KEY', enabled: true },
+          { key: 'Content-Type', value: 'application/json', enabled: true }
+        ],
+        params: [],
+        body: JSON.stringify({
+          "name": taskData.taskName || "New Item",
+          "description": taskData.description || "Created via automation",
+          "automated": true,
+          "timestamp": new Date().toISOString()
+        }, null, 2),
+        bodyType: 'json'
+      });
+    }
+
+    return requests;
+  };
 
   // Load task history on component mount
   useEffect(() => {
@@ -1375,6 +1450,12 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
                     </div>
                   </div>
                 )}
+
+                {/* API Testing Lab */}
+                <PostmanAPITester 
+                  initialRequests={generateAPITestRequests(taskData)}
+                  className="mb-6"
+                />
               </div>
             </div>
           </div>
