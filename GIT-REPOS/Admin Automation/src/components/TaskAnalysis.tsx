@@ -251,21 +251,21 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         method: 'POST',
         url: 'https://services.leadconnectorhq.com/opportunities',
         headers: [
-          { key: 'Authorization', value: 'Bearer YOUR_GHL_JWT_TOKEN', enabled: true },
+          { key: 'Authorization', value: 'YOUR_GHL_PRIVATE_INTEGRATION_TOKEN', enabled: true },
           { key: 'Content-Type', value: 'application/json', enabled: true },
           { key: 'Version', value: '2021-07-28', enabled: true }
         ],
         params: [],
         body: JSON.stringify({
+          "locationId": "YOUR_LOCATION_ID",
           "title": `${new Date().toLocaleDateString()} | ${taskData.taskName || 'Automation Test'} | 1 person`,
           "pipelineId": "pipeline_6707c4c4e7b4f3001a8b4567",
           "pipelineStageId": "stage_6707c4c4e7b4f3001a8b4568",
           "status": "open",
           "monetaryValue": 5000,
           "contactId": "contact_6707c4c4e7b4f3001a8b4569",
-          "locationId": "qlmxFY68hrnVjyo8cNQC",
           "source": "automation",
-          "notes": `Created via ${taskData.taskName || 'automation'} - API testing`
+          "notes": `Created via ${taskData.taskName || 'automation'} - API testing with correct API 2.0 format`
         }, null, 2),
         bodyType: 'json'
       });
@@ -276,7 +276,7 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         method: 'GET',
         url: 'https://services.leadconnectorhq.com/contacts',
         headers: [
-          { key: 'Authorization', value: 'Bearer YOUR_GHL_JWT_TOKEN', enabled: true },
+          { key: 'Authorization', value: 'YOUR_GHL_PRIVATE_INTEGRATION_TOKEN', enabled: true },
           { key: 'Version', value: '2021-07-28', enabled: true }
         ],
         params: [

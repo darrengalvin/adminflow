@@ -52,310 +52,87 @@ export default async function handler(req, res) {
     const annualHours = timePerWeek * 52;
     const savings = Math.round(annualHours * 0.7);
 
-    const prompt = `You are an AI automation specialist with real-time access to current API documentation and integration capabilities. You MUST provide specific, working solutions based on actual research.
+    const DETAILED_TASK_ANALYSIS_PROMPT = `🔬 **RESEARCH-BASED AUTOMATION ANALYSIS**
 
-TASK ANALYSIS - MANUAL TO AUTOMATED:
-- Task: "${taskData.taskName}"
-- Current Software: "${taskData.software}"
-- Description: "${taskData.description}"
-- Weekly Time: ${taskData.timeSpent}
-- Pain Points: ${taskData.painPoints}
+You are an expert business automation consultant with deep API knowledge. Your task is to research and provide comprehensive, implementable automation solutions.
 
-🔍 RESEARCH REQUIREMENTS:
-You have access to current API documentation. Based on the software "${taskData.software}", provide REAL API endpoints, actual authentication methods, and working code examples.
+**CRITICAL REQUIREMENT:** You must provide REAL, VERIFIED API endpoints and working code examples. Do NOT use placeholder URLs or generic examples.
 
-For "${taskData.software}" specifically:
-1. Find the ACTUAL REST API endpoints
-2. Identify REAL authentication requirements  
-3. Provide WORKING code examples with proper error handling
-4. Include SPECIFIC rate limits and costs
-5. Reference ACTUAL documentation URLs
+## 📋 **ANALYSIS FRAMEWORK:**
 
-💡 AUTOMATION STRATEGY:
-Analyze this as: "Here's exactly how you do this manually now" → "Here's the complete automated solution that replaces every step"
+### 1. **Manual Process Breakdown**
+- Document each manual step in detail
+- Identify time-consuming pain points
+- Calculate current time/cost investment
 
-Return comprehensive automation analysis in this EXACT JSON format (return only valid JSON, no markdown):
+### 2. **API Research & Verification** 
+🔍 **For GoHighLevel CRM APIs:**
+- **Base URL:** https://services.leadconnectorhq.com/
+- **Required Headers:** 
+  - Authorization: YOUR_PRIVATE_INTEGRATION_TOKEN (NO "Bearer" prefix)
+  - Content-Type: application/json
+  - Version: 2021-07-28
+- **Key Endpoints:**
+  - Opportunities: POST /opportunities
+  - Contacts: GET/POST /contacts
+  - Pipelines: GET /opportunities/pipelines
+- **Required Fields for Opportunities:**
+  - locationId (REQUIRED - your sub-account ID)
+  - title (not "name" - API 2.0 uses "title")
+  - pipelineId
+  - pipelineStageId
+  - contactId
+  - monetaryValue (optional)
+  - status (open/won/lost/abandoned)
 
-  {
-    "taskName": "🚀 Complete Automation: ${taskData.taskName}",
-    "description": "Research-based AI/API solution to completely automate ${taskData.taskName.toLowerCase()} in ${taskData.software}",
-    "researchFindings": {
-      "apiAvailability": "VERIFIED: ${taskData.software} has comprehensive REST API",
-      "authenticationMethod": "Bearer token authentication required",
-      "documentationUrl": "https://developers.${taskData.software.toLowerCase().replace(/\s+/g, '')}.com/api/v2",
-      "rateLimits": "1000 requests/hour (verified current limits)",
-      "pricing": "API access included in Professional plans ($97/month+)"
-    },
-    "manualProcessBreakdown": {
-      "currentSystem": "${taskData.software}",
-      "exactStepsNow": [
-        "🖱️ Navigate to ${taskData.software} dashboard",
-        "📝 Manual data entry in forms",
-        "🔍 Search and locate existing records",
-        "✏️ Update fields one by one",
-        "💾 Save changes manually",
-        "📧 Send notifications manually"
-      ],
-      "timeWasted": "${timePerWeek} hours/week on repetitive clicks and data entry",
-      "errorProneParts": [
-        "Manual typing introduces typos",
-        "Forgetting to update related fields",
-        "Missing follow-up actions",
-        "Inconsistent data formatting"
-      ]
-    },
-      "completeSolution": {
-      "automationArchitecture": {
-        "triggerSource": "📨 Email monitoring via Gmail API webhook or 📝 Form submission trigger",
-        "aiDataExtraction": "🤖 Claude Sonnet extracts: customer details, event requirements, budget indicators",
-        "realTimeAPIs": "🔗 Direct integration with ${taskData.software} REST API v2.1",
-        "smartErrorHandling": "🛡️ Automatic retries, manual review queue, admin notifications"
-      },
-      "liveImplementation": {
-        "workingCode": \`// PRODUCTION-READY ${taskData.taskName} AUTOMATION
-const express = require('express');
-const { Anthropic } = require('@anthropic-ai/sdk');
+🔍 **For other APIs:** Research actual endpoints from official documentation
 
-const app = express();
-const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
+### 3. **Complete Technical Solution**
+Provide working code with:
+- Real API endpoints (verified from official docs)
+- Proper authentication headers
+- Error handling and retry logic
+- Rate limiting considerations
+- Sample request/response data
 
-// Real webhook endpoint for ${taskData.software}
-app.post('/webhook/${taskData.software.toLowerCase().replace(/\s+/g, '-')}-automation', async (req, res) => {
-  console.log('🚀 New ${taskData.taskName.toLowerCase()} request received');
-  
-  try {
-    // AI extracts structured data
-    const aiResponse = await anthropic.messages.create({
-      model: 'claude-3-sonnet-20240229',
-      messages: [{ 
-        role: 'user', 
-        content: \\\`Extract: \${JSON.stringify(req.body)}\\\` 
-      }]
-    });
-    
-    const extractedData = JSON.parse(aiResponse.content[0].text);
-    
-    // ${taskData.software} API integration
-    const result = await fetch('https://rest.gohighlevel.com/v1/opportunities', {
-      method: 'POST',
-      headers: {
-        'Authorization': \\\`Bearer \${process.env.GHL_API_KEY}\\\`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contactId: extractedData.contactId,
-        name: \\\`\${extractedData.date} | \${extractedData.activity} | \${extractedData.people}\\\`,
-        stage: 'offer-made',
-        monetaryValue: extractedData.budget || 0,
-        source: 'ai-automation'
-      })
-    });
-    
-    const opportunityData = await result.json();
-    console.log('✅ Opportunity created:', opportunityData.id);
-    
-    res.json({ 
-      success: true, 
-      opportunityId: opportunityData.id,
-      automationTime: '12 seconds',
-      manualTimeSaved: '6 minutes'
-    });
-    
-  } catch (error) {
-    console.error('❌ Automation failed:', error);
-    
-    // Smart error handling
-    await fetch(process.env.SLACK_WEBHOOK, {
-      method: 'POST',
-      body: JSON.stringify({
-        text: \\\`🚨 ${taskData.taskName} automation failed: \${error.message}\\\`
-      })
-    });
-    
-    res.status(500).json({ error: 'Automation failed, manual review required' });
-  }
-});\`,
-        "verifiedAPIs": [
-          {
-            "name": "${taskData.software} Create Opportunity (API 2.0)",
-            "method": "POST",
-            "endpoint": "https://services.leadconnectorhq.com/opportunities",
-            "authentication": "Bearer token in Authorization header",
-            "rateLimit": "100 requests/10 seconds, 200,000/day (verified Nov 2024)",
-            "documentation": "https://highlevel.stoplight.io/docs/integrations/802093aa63900-create-opportunity",
-            "testable": true,
-            "sampleRequestBody": {
-              "title": "\${new Date().toLocaleDateString()} | ${taskData.taskName || 'Demo Activity'} | 3 people",
-              "pipelineId": "pipeline_6707c4c4e7b4f3001a8b4567",
-              "pipelineStageId": "stage_6707c4c4e7b4f3001a8b4568",
-              "status": "open",
-              "monetaryValue": 5000,
-              "contactId": "contact_6707c4c4e7b4f3001a8b4569",
-              "locationId": "qlmxFY68hrnVjyo8cNQC",
-              "source": "automation",
-              "notes": "Created via ${taskData.taskName || 'automation'} - ${taskData.description || 'automated process'}"
-            },
-            "requiredHeaders": {
-              "Authorization": "Bearer YOUR_GHL_JWT_TOKEN",
-              "Content-Type": "application/json",
-              "Version": "2021-07-28"
-            }
-          },
-          {
-            "name": "${taskData.software} Get Contacts (API 2.0)", 
-            "method": "GET",
-            "endpoint": "https://services.leadconnectorhq.com/contacts",
-            "purpose": "Find existing contacts before creating opportunities",
-            "responseTime": "~200ms average",
-            "successRate": "99.2% uptime",
-            "sampleParams": {
-              "limit": "20",
-              "locationId": "qlmxFY68hrnVjyo8cNQC",
-              "query": "demo customer"
-            },
-            "requiredHeaders": {
-              "Authorization": "Bearer YOUR_GHL_JWT_TOKEN",
-              "Version": "2021-07-28"
-            }
-          },
-          {
-            "name": "${taskData.software} Update Opportunity (API 2.0)",
-            "method": "PUT", 
-            "endpoint": "https://services.leadconnectorhq.com/opportunities/{opportunityId}",
-            "purpose": "Update opportunity to 'offer made' stage",
-            "sampleRequestBody": {
-              "pipelineStageId": "stage_offer_made_6707c4c4e7b4f3001a8b456c",
-              "status": "open",
-              "notes": "Stage updated to offer made via automation"
-            },
-            "requiredHeaders": {
-              "Authorization": "Bearer YOUR_GHL_JWT_TOKEN",
-              "Content-Type": "application/json",
-              "Version": "2021-07-28"
-            }
-          }
-        ],
-        "bulletproofErrorHandling": [
-          "🔄 API Rate Limiting: Exponential backoff with 3 retry attempts",
-          "📧 Missing Data: AI fills gaps or routes to manual review queue",
-          "🚨 Critical Failures: Instant Slack notifications + email alerts",
-          "📊 Monitoring: Real-time dashboard tracks success rates",
-          "🔐 Security: API keys stored in encrypted environment variables"
-        ]
-      }
-    },
-      "measuredResults": {
-      "timeComparison": {
-        "beforeAutomation": "${timePerWeek} hours/week manual ${taskData.taskName.toLowerCase()}",
-        "afterAutomation": "12 seconds per ${taskData.taskName.toLowerCase()} (measured)",
-        "timeMultiplier": "${Math.round((timePerWeek * 60 * 60) / 12)}x faster than manual",
-        "weeklyTimeSaved": "${Math.round(timePerWeek * 0.98)} hours (${Math.round(timePerWeek * 0.98 * 60)} minutes)",
-        "monthlyTimeSaved": "${Math.round(timePerWeek * 4 * 0.98)} hours",
-        "yearlyTimeSaved": "${Math.round(timePerWeek * 52 * 0.98)} hours"
-      },
-      "financialROI": {
-        "hourlyRate": "£35 (admin cost)",
-        "yearlyLaborSavings": "£${Math.round(timePerWeek * 52 * 0.98 * 35)}",
-        "developmentCost": "£3,200 (one-time)",
-        "monthlyCosts": "£180 (API usage + hosting)",
-        "breakEvenPoint": "${Math.round(3200 / (timePerWeek * 52 * 0.98 * 35 / 12))} months",
-        "year1NetSavings": "£${Math.round(timePerWeek * 52 * 0.98 * 35 - 3200 - 180 * 12)}"
-      },
-      "scalabilityBenefits": [
-        "🚀 Process 100x more ${taskData.taskName.toLowerCase()}s without hiring",
-        "🌙 24/7 processing (no weekends/holidays delays)",
-        "🎯 100% consistency (eliminates human errors)",
-        "📊 Real-time analytics and reporting",
-        "🔄 Instant updates across all connected systems"
-      ]
-    },
-    "liveAPITesting": {
-      "testableEndpoints": [
-        {
-          "name": "${taskData.software} Authentication Test",
-          "method": "GET",
-          "endpoint": "https://rest.gohighlevel.com/v1/locations",
-          "purpose": "Verify API credentials and access",
-          "expectedResponse": "200 OK with location data",
-          "testable": true
-        },
-        {
-          "name": "Create Opportunity Test",
-          "method": "POST", 
-          "endpoint": "https://rest.gohighlevel.com/v1/opportunities",
-          "purpose": "Test ${taskData.taskName.toLowerCase()} automation",
-          "sampleData": "{\\"contactId\\": \\"test_123\\", \\"name\\": \\"Test Opportunity\\"}",
-          "testable": true
-        }
-      ],
-      "integrationChecklist": [
-        "✅ API credentials obtained and verified",
-        "✅ Rate limits tested (1000/hour confirmed)",  
-        "✅ Error handling verified with invalid data",
-        "✅ Webhook endpoint tested and responding",
-        "🔄 Production deployment ready"
-      ]
-    },
-  "implementationRoadmap": {
-    "phase1": {
-      "title": "Setup (Week 1)",
-      "tasks": [
-        "Obtain API credentials for ${taskData.software}",
-        "Set up development environment",
-        "Create test data set",
-        "Build basic API connectivity"
-      ]
-    },
-    "phase2": {
-      "title": "Core Automation (Week 2-3)",
-      "tasks": [
-        "Implement main automation workflow",
-        "Add comprehensive error handling",
-        "Create monitoring and logging",
-        "Test with real data"
-      ]
-    },
-    "phase3": {
-      "title": "Deployment (Week 4)",
-      "tasks": [
-        "User acceptance testing",
-        "Deploy to production",
-        "Set up monitoring alerts", 
-        "Train team on new process"
-      ]
-    },
-    "requiredResources": {
-      "technical": "Node.js developer, API integration experience",
-      "access": "${taskData.software} admin access, API keys",
-      "timeEstimate": "20-25 development hours",
-      "budget": "£150/month ongoing costs"
-    }
-  },
-  "riskAssessment": {
-    "potentialRisks": [
-      "API Changes: ${taskData.software} updates could break integration",
-      "Data Quality: Poor input data could create issues",
-      "Rate Limits: High volume could hit API limits"
-    ],
-    "mitigationStrategies": [
-      "Subscribe to API changelog and maintain compatibility",
-      "Implement data validation with manual review fallback",
-      "Add request queuing and retry logic"
-    ]
-  }
-}
+### 4. **Business Impact Calculation**
+- Time saved per execution
+- Cost reduction analysis
+- ROI projections
+- Scalability benefits
 
-CRITICAL REQUIREMENTS:
-1. ✅ Provide SPECIFIC API endpoints - not generic "has an API"
-2. ✅ Include WORKING code examples - actual implementable code  
-3. ✅ Detail COMPREHENSIVE error handling - cover edge cases
-4. ✅ Calculate EXACT time/cost savings - real business numbers
-5. ✅ Create REALISTIC implementation timeline - actual project plan
-6. ✅ Include TESTING procedures - how to validate it works
+## 🚀 **OUTPUT FORMAT:**
 
-❌ AVOID: Generic statements, vague suggestions, missing technical details, no code examples
+**Manual Process Analysis:**
+[Detailed breakdown of current manual steps]
 
-Focus on transforming the manual process into a complete technical automation solution with specific APIs, working code, and detailed implementation guidance.`;
+**Automation Architecture:**
+[Technical implementation plan with real APIs]
+
+**Working Code Examples:**
+[Complete, runnable code with real endpoints]
+
+**API Integration Details:**
+- Endpoint: [Real verified URL]
+- Authentication: [Exact header format]
+- Rate Limits: [Actual API limits]
+- Error Handling: [Specific error codes and responses]
+
+**Business Calculations:**
+- Current Time: X minutes per task
+- Automated Time: Y seconds per task  
+- Time Savings: Z% reduction
+- Monthly ROI: $X saved
+
+**Testing & Validation:**
+[Step-by-step testing instructions with real API calls]
+
+**Implementation Roadmap:**
+[Phased rollout plan with milestones]
+
+Remember: Every API endpoint, authentication method, and code example must be REAL and VERIFIED. No placeholders allowed!`;
+
+    const prompt = DETAILED_TASK_ANALYSIS_PROMPT;
 
     // Make request to Claude API
     console.log('Making request to Claude API...');
