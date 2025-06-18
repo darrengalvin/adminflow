@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { industryTemplates, IndustryTemplate, ReportSection, getSectionsByCategory } from '../data/industryTemplates';
 import { PDFCompiler } from '../services/pdfCompiler';
+import { ReportHistoryService } from '../services/reportHistoryService';
 
 interface SectionProgress {
   id: string;
@@ -16,6 +17,7 @@ export const SectionedReportBuilder: React.FC = () => {
   const [sectionProgress, setSectionProgress] = useState<Record<string, SectionProgress>>({});
   const [currentlyGenerating, setCurrentlyGenerating] = useState<string | null>(null);
   const [pdfCompiler] = useState(() => new PDFCompiler());
+  const [currentReportId, setCurrentReportId] = useState<string | null>(null);
 
   const handleIndustrySelect = (template: IndustryTemplate) => {
     setSelectedIndustry(template);
@@ -39,6 +41,11 @@ export const SectionedReportBuilder: React.FC = () => {
     
     setIsGenerating(true);
     
+    // Create pending report entry immediately in history
+    const reportId = ReportHistoryService.createPendingReport(`${selectedIndustry.name} - Sectioned Report`);
+    setCurrentReportId(reportId);
+    console.log('📚 Created pending sectioned report in history with ID:', reportId);
+    
     // Initialize progress for all selected sections
     const initialProgress: Record<string, SectionProgress> = {};
     selectedSections.forEach(sectionId => {
@@ -54,13 +61,55 @@ export const SectionedReportBuilder: React.FC = () => {
     const batchSize = 2;
     const sections = selectedIndustry.sections.filter(s => selectedSections.includes(s.id));
     
-    for (let i = 0; i < sections.length; i += batchSize) {
-      const batch = sections.slice(i, i + batchSize);
+    try {
+      for (let i = 0; i < sections.length; i += batchSize) {
+        const batch = sections.slice(i, i + batchSize);
+        
+        // Update overall progress in history
+        const overallProgress = Math.round((i / sections.length) * 100);
+        ReportHistoryService.updateReportProgress(
+          reportId, 
+          overallProgress, 
+          `Generating sections ${i + 1}-${Math.min(i + batchSize, sections.length)} of ${sections.length}...`,
+          'generating'
+        );
+        
+        // Generate batch in parallel
+        await Promise.all(
+          batch.map(section => generateSection(section))
+        );
+      }
+
+      // Check if all sections completed successfully
+      const completedSections = Object.values(sectionProgress).filter(s => s.status === 'completed');
+      const totalSections = selectedSections.length;
       
-      // Generate batch in parallel
-      await Promise.all(
-        batch.map(section => generateSection(section))
-      );
+      if (completedSections.length === totalSections) {
+        // All sections completed - create a mock report for history
+        const mockReport = {
+          content: { sections: sectionProgress },
+          metadata: {
+            title: `${selectedIndustry.name} Implementation Report`,
+            isRealAI: true,
+            generatedAt: new Date().toISOString(),
+            sectionsGenerated: completedSections.length,
+            totalSections: totalSections
+          }
+        };
+        
+        ReportHistoryService.completeReport(reportId, mockReport as any);
+        console.log('📚 Sectioned report completed in history with ID:', reportId);
+      } else {
+        // Some sections failed
+        const failedCount = totalSections - completedSections.length;
+        ReportHistoryService.markReportFailed(
+          reportId, 
+          `${failedCount} of ${totalSections} sections failed to generate`
+        );
+      }
+    } catch (error) {
+      // Generation failed entirely
+      ReportHistoryService.markReportFailed(reportId, error.message || 'Section generation failed');
     }
 
     setIsGenerating(false);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ReportHistoryService, ReportHistoryItem } from '../services/reportHistoryService';
 import { DynamicReportRenderer } from './pdf/DynamicReportRenderer';
+import { SectionedReportRenderer } from './SectionedReportRenderer';
 import { FileText, Download, Trash2, Eye, Calendar, Clock, Search, Filter } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -71,7 +72,9 @@ export const ReportHistory: React.FC = () => {
       // Wait a bit for the component to render
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const element = document.getElementById('dynamic-report-content');
+      // Check if this is a sectioned report
+      const elementId = report.report?.content?.sections ? 'sectioned-report-content' : 'dynamic-report-content';
+      const element = document.getElementById(elementId);
       if (!element) {
         throw new Error('Report content not found');
       }
@@ -205,10 +208,15 @@ export const ReportHistory: React.FC = () => {
 
         {/* Render the selected report */}
         {selectedReport.report ? (
-          <DynamicReportRenderer 
-            report={selectedReport.report} 
-            onConvertToPDF={() => generatePDFFromHistory(selectedReport)}
-          />
+          // Check if this is a sectioned report
+          selectedReport.report.content?.sections ? (
+            <SectionedReportRenderer report={selectedReport} />
+          ) : (
+            <DynamicReportRenderer 
+              report={selectedReport.report} 
+              onConvertToPDF={() => generatePDFFromHistory(selectedReport)}
+            />
+          )
         ) : (
           <div className="max-w-4xl mx-auto p-8">
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
