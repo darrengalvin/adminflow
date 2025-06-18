@@ -66,9 +66,21 @@ function App() {
 
       // Set workflows state
       const workflowsList = Object.values(allWorkflows) as Workflow[];
-      console.log('🚀 App startup: Total workflows loaded:', workflowsList.length);
-      console.log('📋 Workflow names:', workflowsList.map(w => w.name));
-      setWorkflows(workflowsList);
+      
+      // Validate and fix workflow data to prevent map errors
+      const validatedWorkflows = workflowsList.map(workflow => ({
+        ...workflow,
+        steps: workflow.steps || [],
+        tags: workflow.tags || [],
+        progress: workflow.progress || 0,
+        status: workflow.status || 'draft',
+        createdAt: workflow.createdAt || new Date(),
+        estimatedDuration: workflow.estimatedDuration || 0
+      }));
+      
+      console.log('🚀 App startup: Total workflows loaded:', validatedWorkflows.length);
+      console.log('📋 Workflow names:', validatedWorkflows.map(w => w.name));
+      setWorkflows(validatedWorkflows);
       
     } catch (error) {
       console.error('Error loading workflows on app startup:', error);

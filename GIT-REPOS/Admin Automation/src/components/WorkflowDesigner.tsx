@@ -584,17 +584,17 @@ export function WorkflowDesigner({ workflows: propWorkflows, onNavigateToAnalysi
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span style={{ color: 'var(--text-tertiary)' }}>Steps:</span>
-                    <span style={{ color: 'var(--text-primary)' }}>{workflow.steps.length}</span>
+                    <span style={{ color: 'var(--text-primary)' }}>{workflow.steps?.length || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span style={{ color: 'var(--text-tertiary)' }}>Progress:</span>
-                    <span style={{ color: 'var(--text-primary)' }}>{workflow.progress}%</span>
+                    <span style={{ color: 'var(--text-primary)' }}>{workflow.progress || 0}%</span>
                   </div>
                   <div className="w-full rounded-full h-2" style={{ background: 'var(--bg-tertiary)' }}>
                     <div 
                       className="h-2 rounded-full transition-all duration-300"
                       style={{ 
-                        width: `${workflow.progress}%`,
+                        width: `${workflow.progress || 0}%`,
                         background: `linear-gradient(to right, var(--color-accent-primary), var(--color-accent-secondary))`
                       }}
                     ></div>
@@ -606,14 +606,14 @@ export function WorkflowDesigner({ workflows: propWorkflows, onNavigateToAnalysi
                     Created {formatDate(workflow.createdAt)}
                   </div>
                   <div className="flex items-center gap-1">
-                    {workflow.tags.slice(0, 2).map(tag => (
+                    {(workflow.tags || []).slice(0, 2).map(tag => (
                       <span key={tag} className="px-2 py-1 text-xs rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
                         {tag}
                       </span>
                     ))}
-                    {workflow.tags.length > 2 && (
+                    {(workflow.tags || []).length > 2 && (
                       <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        +{workflow.tags.length - 2}
+                        +{(workflow.tags || []).length - 2}
                       </span>
                     )}
                   </div>
