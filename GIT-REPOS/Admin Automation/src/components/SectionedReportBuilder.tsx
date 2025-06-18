@@ -80,31 +80,44 @@ export const SectionedReportBuilder: React.FC = () => {
         );
       }
 
-      // Check if all sections completed successfully
+      // Always save the report, even with partial completion
       const completedSections = Object.values(sectionProgress).filter(s => s.status === 'completed');
       const totalSections = selectedSections.length;
+      const failedSections = Object.values(sectionProgress).filter(s => s.status === 'error');
+      
+      // Create report with current progress (completed + failed sections)
+      const mockReport = {
+        content: { sections: sectionProgress },
+        metadata: {
+          title: `${selectedIndustry.name} Implementation Report`,
+          isRealAI: true,
+          generatedAt: new Date().toISOString(),
+          sectionsGenerated: completedSections.length,
+          totalSections: totalSections,
+          failedSections: failedSections.length,
+          isPartiallyComplete: failedSections.length > 0
+        }
+      };
       
       if (completedSections.length === totalSections) {
-        // All sections completed - create a mock report for history
-        const mockReport = {
-          content: { sections: sectionProgress },
-          metadata: {
-            title: `${selectedIndustry.name} Implementation Report`,
-            isRealAI: true,
-            generatedAt: new Date().toISOString(),
-            sectionsGenerated: completedSections.length,
-            totalSections: totalSections
-          }
-        };
-        
+        // All sections completed successfully
         ReportHistoryService.completeReport(reportId, mockReport as any);
-        console.log('📚 Sectioned report completed in history with ID:', reportId);
+        console.log('📚 Sectioned report completed successfully in history with ID:', reportId);
+      } else if (completedSections.length > 0) {
+        // Partial completion - save what we have
+        ReportHistoryService.completeReport(reportId, mockReport as any);
+        ReportHistoryService.updateReportProgress(
+          reportId, 
+          100, 
+          `Partial completion: ${completedSections.length}/${totalSections} sections generated`,
+          'generated'
+        );
+        console.log(`📚 Partial sectioned report saved: ${completedSections.length}/${totalSections} sections completed`);
       } else {
-        // Some sections failed
-        const failedCount = totalSections - completedSections.length;
+        // Complete failure - no sections completed
         ReportHistoryService.markReportFailed(
           reportId, 
-          `${failedCount} of ${totalSections} sections failed to generate`
+          `All ${totalSections} sections failed to generate`
         );
       }
     } catch (error) {
@@ -211,6 +224,74 @@ export const SectionedReportBuilder: React.FC = () => {
     }
   };
 
+  const retryFailedSections = async () => {
+    if (!selectedIndustry || !currentReportId) return;
+    
+    const failedSections = Object.entries(sectionProgress)
+      .filter(([_, progress]) => progress.status === 'error')
+      .map(([sectionId]) => selectedIndustry.sections.find(s => s.id === sectionId))
+      .filter(Boolean);
+    
+    if (failedSections.length === 0) {
+      alert('No failed sections to retry.');
+      return;
+    }
+    
+    console.log(`🔄 Retrying ${failedSections.length} failed sections...`);
+    
+    // Update report status back to generating
+    ReportHistoryService.updateReportProgress(
+      currentReportId,
+      Math.round((Object.values(sectionProgress).filter(s => s.status === 'completed').length / selectedSections.length) * 100),
+      `Retrying ${failedSections.length} failed sections...`,
+      'generating'
+    );
+    
+    // Reset failed sections to pending
+    const updatedProgress = { ...sectionProgress };
+    failedSections.forEach(section => {
+      if (section) {
+        updatedProgress[section.id] = {
+          ...updatedProgress[section.id],
+          status: 'pending',
+          progress: 0
+        };
+      }
+    });
+    setSectionProgress(updatedProgress);
+    
+    // Retry failed sections
+    try {
+      await Promise.all(
+        failedSections.map(section => section && generateSection(section))
+      );
+      
+      // Update final status
+      const newCompletedSections = Object.values(sectionProgress).filter(s => s.status === 'completed');
+      const newFailedSections = Object.values(sectionProgress).filter(s => s.status === 'error');
+      
+      if (newFailedSections.length === 0) {
+        // All sections now completed
+        ReportHistoryService.updateReportProgress(
+          currentReportId,
+          100,
+          'All sections completed successfully!',
+          'generated'
+        );
+      } else {
+        // Still some failures
+        ReportHistoryService.updateReportProgress(
+          currentReportId,
+          100,
+          `Retry completed: ${newCompletedSections.length}/${selectedSections.length} sections generated`,
+          'generated'
+        );
+      }
+    } catch (error) {
+      console.error('❌ Retry failed:', error);
+    }
+  };
+
   const compilePDF = () => {
     if (!selectedIndustry) return;
     
@@ -264,7 +345,11 @@ export const SectionedReportBuilder: React.FC = () => {
     : 0;
 
   const completedSections = Object.values(sectionProgress).filter(s => s.status === 'completed').length;
+  const failedSections = Object.values(sectionProgress).filter(s => s.status === 'error').length;
+  const generatingSections = Object.values(sectionProgress).filter(s => s.status === 'generating').length;
   const allCompleted = completedSections === selectedSections.length && selectedSections.length > 0;
+  const hasFailures = failedSections > 0;
+  const hasCompletedSections = completedSections > 0;
 
   if (!selectedIndustry) {
     return (
@@ -520,16 +605,33 @@ export const SectionedReportBuilder: React.FC = () => {
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Ready to Generate?</h3>
+            <h3 className="text-lg font-bold text-gray-900">
+              {isGenerating ? 'Generation in Progress' : 
+               allCompleted ? 'Generation Complete!' :
+               hasFailures ? 'Generation Completed with Issues' :
+               hasCompletedSections ? 'Partial Generation Complete' :
+               'Ready to Generate?'}
+            </h3>
             <p className="text-gray-600">
               {selectedSections.length} sections selected • 
               ~{selectedIndustry.sections
                 .filter(s => selectedSections.includes(s.id))
                 .reduce((sum, s) => sum + s.estimatedPages, 0)} pages total
+              {hasCompletedSections && (
+                <> • {completedSections} completed{hasFailures && `, ${failedSections} failed`}</>
+              )}
             </p>
+            {hasFailures && (
+              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-yellow-800 text-sm font-medium">
+                  ⚠️ {failedSections} section{failedSections > 1 ? 's' : ''} failed to generate. 
+                  You can retry failed sections or compile the report with completed sections only.
+                </p>
+              </div>
+            )}
           </div>
-          <div className="flex space-x-4">
-            {!isGenerating && !allCompleted && (
+          <div className="flex space-x-3">
+            {!isGenerating && !allCompleted && !hasCompletedSections && (
               <button
                 onClick={startGeneration}
                 disabled={selectedSections.length === 0}
@@ -538,12 +640,36 @@ export const SectionedReportBuilder: React.FC = () => {
                 🚀 Start Generation
               </button>
             )}
-            {allCompleted && (
+            
+            {hasFailures && !isGenerating && (
+              <button
+                onClick={retryFailedSections}
+                className="bg-orange-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors"
+              >
+                🔄 Retry Failed Sections
+              </button>
+            )}
+            
+            {hasCompletedSections && !isGenerating && (
               <button
                 onClick={compilePDF}
                 className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
               >
-                📄 Compile PDF Report
+                📄 Compile PDF ({completedSections} sections)
+              </button>
+            )}
+            
+            {!isGenerating && hasCompletedSections && (
+              <button
+                onClick={() => {
+                  // Reset and start fresh
+                  setSectionProgress({});
+                  setCurrentReportId(null);
+                  setCurrentlyGenerating(null);
+                }}
+                className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
+              >
+                🔄 Start Fresh
               </button>
             )}
           </div>

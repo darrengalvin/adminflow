@@ -30,7 +30,19 @@ export const SectionedReportRenderer: React.FC<SectionedReportRendererProps> = (
         <p className="text-blue-100">
           Generated on {new Date(report.createdAt).toLocaleDateString()} • 
           {metadata?.sectionsGenerated || Object.keys(sections).length} sections
+          {metadata?.isPartiallyComplete && (
+            <span className="ml-2 px-2 py-1 bg-yellow-500 text-yellow-900 text-xs rounded-full">
+              Partial Report
+            </span>
+          )}
         </p>
+        {metadata?.isPartiallyComplete && (
+          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800 text-sm">
+              ⚠️ This is a partial report. {metadata.failedSections || 0} sections failed to generate and are not included.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Table of Contents */}
