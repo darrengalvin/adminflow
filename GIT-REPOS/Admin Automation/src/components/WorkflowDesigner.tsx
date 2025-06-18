@@ -6,13 +6,14 @@ import { WorkflowDetails } from './WorkflowDetails';
 import { taskStorage, AnalyzedTask } from '../utils/taskStorage';
 
 interface WorkflowDesignerProps {
+  workflows?: Workflow[];
   onNavigateToAnalysis: () => void;
   onWorkflowSave?: (workflow: Workflow) => void;
   onWorkflowExecute?: (workflowId: string) => void;
 }
 
-export function WorkflowDesigner({ onNavigateToAnalysis, onWorkflowSave, onWorkflowExecute }: WorkflowDesignerProps) {
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+export function WorkflowDesigner({ workflows: propWorkflows, onNavigateToAnalysis, onWorkflowSave, onWorkflowExecute }: WorkflowDesignerProps) {
+  const [workflows, setWorkflows] = useState<Workflow[]>(propWorkflows || []);
   const [analyzedTasks, setAnalyzedTasks] = useState<AnalyzedTask[]>([]);
   const [showBuilder, setShowBuilder] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
@@ -21,6 +22,14 @@ export function WorkflowDesigner({ onNavigateToAnalysis, onWorkflowSave, onWorkf
   const [showTaskSelection, setShowTaskSelection] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [newWorkflowName, setNewWorkflowName] = useState('');
+
+  // Update local state when prop changes
+  useEffect(() => {
+    if (propWorkflows) {
+      console.log('📦 Received workflows from parent:', propWorkflows.length);
+      setWorkflows(propWorkflows);
+    }
+  }, [propWorkflows]);
 
   // Safe date formatting function
   const formatDate = (dateValue: any): string => {
@@ -36,22 +45,29 @@ export function WorkflowDesigner({ onNavigateToAnalysis, onWorkflowSave, onWorkf
   };
 
   useEffect(() => {
-    loadWorkflowsFromStorage();
+    // Only load from storage if no workflows prop provided
+    if (!propWorkflows) {
+      loadWorkflowsFromStorage();
+    }
     loadAnalyzedTasksFromStorage();
-  }, []);
+  }, [propWorkflows]);
 
   // Add listener to reload workflows when window gains focus or becomes visible
   useEffect(() => {
     const handleFocus = () => {
       console.log('🔄 Window focused, reloading workflows...');
-      loadWorkflowsFromStorage();
+      if (!propWorkflows) {
+        loadWorkflowsFromStorage();
+      }
       loadAnalyzedTasksFromStorage();
     };
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         console.log('🔄 Page became visible, reloading workflows...');
-        loadWorkflowsFromStorage();
+        if (!propWorkflows) {
+          loadWorkflowsFromStorage();
+        }
         loadAnalyzedTasksFromStorage();
       }
     };
@@ -63,7 +79,7 @@ export function WorkflowDesigner({ onNavigateToAnalysis, onWorkflowSave, onWorkf
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [propWorkflows]);
 
   const loadWorkflowsFromStorage = () => {
     try {

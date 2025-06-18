@@ -865,10 +865,10 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         ].filter(Boolean)
       };
 
-      // Save to workflows in localStorage
-      const existingWorkflows = JSON.parse(localStorage.getItem('workflows') || '[]');
-      const updatedWorkflows = [workflow, ...existingWorkflows];
-      localStorage.setItem('workflows', JSON.stringify(updatedWorkflows));
+      // Save to workflows in localStorage using the same key as WorkflowDesigner
+      const existingWorkflows = JSON.parse(localStorage.getItem('automationWorkflows') || '{}');
+      existingWorkflows[workflow.id] = workflow;
+      localStorage.setItem('automationWorkflows', JSON.stringify(existingWorkflows));
 
       // Close modal and reset state
       setShowWorkflowChooser(false);
@@ -931,12 +931,10 @@ const TaskAnalysis: React.FC<TaskAnalysisProps> = ({ onBack, onAddWorkflow, onNa
         tags: [...new Set([...existingWorkflow.tags, 'automation', analysisData.automation?.type || 'general'])]
       };
 
-      // Update workflows in localStorage
-      const allWorkflows = JSON.parse(localStorage.getItem('workflows') || '[]');
-      const updatedWorkflows = allWorkflows.map((w: Workflow) => 
-        w.id === existingWorkflow.id ? updatedWorkflow : w
-      );
-      localStorage.setItem('workflows', JSON.stringify(updatedWorkflows));
+      // Update workflows in localStorage using the same key as WorkflowDesigner
+      const allWorkflows = JSON.parse(localStorage.getItem('automationWorkflows') || '{}');
+      allWorkflows[updatedWorkflow.id] = updatedWorkflow;
+      localStorage.setItem('automationWorkflows', JSON.stringify(allWorkflows));
 
       // Close modal and reset state
       setShowWorkflowChooser(false);

@@ -31,6 +31,21 @@ function App() {
   const [notifications, setNotifications] = useState(mockNotifications);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Load workflows from localStorage on app start
+  useEffect(() => {
+    try {
+      const savedWorkflows = localStorage.getItem('automationWorkflows');
+      if (savedWorkflows) {
+        const workflowsData = JSON.parse(savedWorkflows);
+        const workflowsList = Object.values(workflowsData) as Workflow[];
+        console.log('🚀 App startup: Loaded', workflowsList.length, 'workflows from localStorage');
+        setWorkflows(workflowsList);
+      }
+    } catch (error) {
+      console.error('Error loading workflows on app startup:', error);
+    }
+  }, []);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
@@ -111,15 +126,30 @@ function App() {
   const handleWorkflowSave = (workflow: Workflow) => {
     setWorkflows(prev => {
       const existingIndex = prev.findIndex(w => w.id === workflow.id);
+      let updatedWorkflows;
+      
       if (existingIndex >= 0) {
         // Update existing workflow
-        const updated = [...prev];
-        updated[existingIndex] = workflow;
-        return updated;
+        updatedWorkflows = [...prev];
+        updatedWorkflows[existingIndex] = workflow;
       } else {
         // Add new workflow
-        return [...prev, workflow];
+        updatedWorkflows = [...prev, workflow];
       }
+
+      // Save to localStorage
+      try {
+        const workflowsData = updatedWorkflows.reduce((acc, w) => {
+          acc[w.id] = w;
+          return acc;
+        }, {} as Record<string, Workflow>);
+        localStorage.setItem('automationWorkflows', JSON.stringify(workflowsData));
+        console.log('💾 Saved workflow to localStorage:', workflow.name);
+      } catch (error) {
+        console.error('Error saving workflows to localStorage:', error);
+      }
+
+      return updatedWorkflows;
     });
 
     // Add to workflow engine
@@ -168,6 +198,7 @@ function App() {
       case 'workflows':
         return (
           <WorkflowDesigner 
+            workflows={workflows}
             onNavigateToAnalysis={() => setCurrentSection('analyze')}
             onWorkflowSave={handleWorkflowSave}
             onWorkflowExecute={handleWorkflowExecute}
