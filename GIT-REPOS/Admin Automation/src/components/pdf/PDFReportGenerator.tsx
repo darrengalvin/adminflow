@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ClaudeService, AIGeneratedReport, WorkflowAnalysisRequest } from '../../services/claudeService';
+import { StatusService, StatusUpdate } from '../../services/statusService';
 import { DynamicReportRenderer } from './DynamicReportRenderer';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -18,52 +19,126 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState('');
+  const [dynamicStatus, setDynamicStatus] = useState<StatusUpdate | null>(null);
+  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState('');
 
   const claudeService = new ClaudeService();
+  const statusService = new StatusService();
+  const statusCleanupRef = useRef<(() => void) | null>(null);
+
+  // Cleanup status updates when component unmounts
+  useEffect(() => {
+    return () => {
+      if (statusCleanupRef.current) {
+        statusCleanupRef.current();
+      }
+    };
+  }, []);
 
   const generateReport = async () => {
     setIsGenerating(true);
     setError(null);
     setProgress(0);
+    setDynamicStatus(null);
+    
+    // Cleanup any existing status updates
+    if (statusCleanupRef.current) {
+      statusCleanupRef.current();
+    }
     
     try {
       // Phase 1: Initializing
       setCurrentPhase('🔄 Initializing Claude 4 Opus...');
       setProgress(10);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      setEstimatedTimeRemaining('5-10 seconds');
+      
+      // Start dynamic status updates for initializing phase
+      statusCleanupRef.current = statusService.startStatusUpdates('initializing', (status) => {
+        setDynamicStatus(status);
+      }, 2000);
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Phase 2: Generating Component
+      // Phase 2: Generating Component (This is the main phase)
       setCurrentPhase('🤖 Generating React Component with Claude 4 Opus...');
       setProgress(30);
+      setEstimatedTimeRemaining('90-120 seconds');
       
+      // Stop initializing updates and start generating updates
+      if (statusCleanupRef.current) {
+        statusCleanupRef.current();
+      }
+      
+      statusCleanupRef.current = statusService.startStatusUpdates('generating', (status) => {
+        setDynamicStatus(status);
+      }, 3000); // Update every 3 seconds during the long Claude generation
+      
+      // This is where the actual Claude API call happens
       const report = await claudeService.generateReactReport(workflowData);
       
       // Phase 3: Processing
       setCurrentPhase('⚙️ Processing AI-generated component...');
       setProgress(70);
+      setEstimatedTimeRemaining('10-15 seconds');
+      
+      // Switch to processing status updates
+      if (statusCleanupRef.current) {
+        statusCleanupRef.current();
+      }
+      
+      statusCleanupRef.current = statusService.startStatusUpdates('processing', (status) => {
+        setDynamicStatus(status);
+      }, 2500);
+      
       await new Promise(resolve => setTimeout(resolve, 800));
 
       // Phase 4: Rendering
       setCurrentPhase('🎨 Rendering beautiful report...');
       setProgress(90);
+      setEstimatedTimeRemaining('5-8 seconds');
+      
+      // Switch to rendering status updates
+      if (statusCleanupRef.current) {
+        statusCleanupRef.current();
+      }
+      
+      statusCleanupRef.current = statusService.startStatusUpdates('rendering', (status) => {
+        setDynamicStatus(status);
+      }, 2000);
+      
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Phase 5: Complete
       setCurrentPhase('✅ Report generated successfully!');
       setProgress(100);
+      setEstimatedTimeRemaining('');
+      
+      // Stop all status updates
+      if (statusCleanupRef.current) {
+        statusCleanupRef.current();
+        statusCleanupRef.current = null;
+      }
       
       setGeneratedReport(report);
       onGenerateReport?.(report);
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setCurrentPhase('');
+      // Keep the success message visible longer and don't clear it automatically
+      // User can manually clear it with "Generate New" button
       
     } catch (err) {
       console.error('Report generation failed:', err);
       setError(err.message || 'Failed to generate report');
+      
+      // Cleanup status updates on error
+      if (statusCleanupRef.current) {
+        statusCleanupRef.current();
+        statusCleanupRef.current = null;
+      }
     } finally {
       setIsGenerating(false);
-      setProgress(0);
+      setEstimatedTimeRemaining('');
+      // Only reset progress if there was an error (no report generated)
+      // If successful, keep progress at 100% to show completion
     }
   };
 
@@ -141,6 +216,9 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
   const resetReport = () => {
     setGeneratedReport(null);
     setError(null);
+    setProgress(0);
+    setCurrentPhase('');
+    setDynamicStatus(null);
   };
 
   if (generatedReport) {
@@ -246,7 +324,25 @@ export const PDFReportGenerator: React.FC<PDFReportGeneratorProps> = ({
                   style={{ width: `${progress}%` }}
                 />
               </div>
+              {estimatedTimeRemaining && (
+                <div className="text-xs text-blue-600 mt-2">
+                  Estimated time: {estimatedTimeRemaining}
+                </div>
+              )}
             </div>
+
+            {/* Dynamic Status Updates */}
+            {dynamicStatus && (
+              <div className="bg-white/70 rounded-lg p-4 mb-6 border border-blue-100">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-blue-800 font-medium">{dynamicStatus.message}</span>
+                </div>
+                <div className="text-xs text-blue-600 mt-1">
+                  Phase: {dynamicStatus.phase} • {new Date(dynamicStatus.timestamp).toLocaleTimeString()}
+                </div>
+              </div>
+            )}
 
             <div className="text-gray-600 space-y-2">
               <p>🤖 Claude 4 Opus is crafting your custom implementation guide</p>

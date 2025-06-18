@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     
     const requestBody = {
       model: 'claude-opus-4-20250514', // Keep Claude 4 Opus as requested
-      max_tokens: 6000, // Increased for comprehensive reports
+      max_tokens: 8192, // Maximum tokens for comprehensive multi-page reports
       messages: [
         {
           role: 'user',
@@ -106,10 +106,94 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    const claudeResponse = data.content[0]?.text || '';
+    let claudeResponse = data.content[0]?.text || '';
 
     console.log('✅ Successfully received Claude response for PDF report (Vercel Pro)');
     console.log('📊 Response length:', claudeResponse.length, 'characters');
+    console.log('📊 Response tokens used:', data.usage?.output_tokens || 'unknown');
+
+    // Check if response was actually truncated (incomplete HTML structure)
+    const hasClosingHtml = claudeResponse.toLowerCase().includes('</html>');
+    const hasClosingBody = claudeResponse.toLowerCase().includes('</body>');
+    const endsAbruptly = !claudeResponse.trim().endsWith('>'); // Doesn't end with a complete tag
+    const isTruncated = !hasClosingHtml || !hasClosingBody || endsAbruptly;
+
+    console.log('🔍 Truncation check:', {
+      hasClosingHtml,
+      hasClosingBody,
+      endsAbruptly,
+      isTruncated,
+      responseLength: claudeResponse.length,
+      lastChars: claudeResponse.slice(-50)
+    });
+
+    if (isTruncated) {
+      console.log('⚠️ Response appears truncated, attempting continuation...');
+      
+      // Try to continue the response
+      const continuationPrompt = `Continue the HTML document from where you left off. Here's what you generated so far:
+
+${claudeResponse.slice(-1000)}
+
+Please complete the HTML document by adding the missing sections and ensuring it ends with proper </body></html> tags. Focus on:
+1. Completing any unfinished sections
+2. Adding proper closing tags
+3. Ensuring the document is complete and valid`;
+
+      try {
+        const continuationResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-opus-4-20250514',
+            max_tokens: 4000,
+            messages: [
+              {
+                role: 'user',
+                content: continuationPrompt
+              }
+            ]
+          }),
+          signal: controller.signal
+        });
+
+        if (continuationResponse.ok) {
+          const continuationData = await continuationResponse.json();
+          const continuation = continuationData.content[0]?.text || '';
+          
+          console.log('✅ Got continuation response:', continuation.length, 'characters');
+          
+          // Merge the responses intelligently
+          if (continuation.trim()) {
+            // Remove any duplicate opening tags from continuation
+            const cleanContinuation = continuation
+              .replace(/^<!DOCTYPE html>[\s\S]*?<body[^>]*>/i, '')
+              .replace(/^<html[^>]*>[\s\S]*?<body[^>]*>/i, '')
+              .trim();
+            
+            claudeResponse += '\n' + cleanContinuation;
+          }
+        }
+      } catch (continuationError) {
+        console.log('⚠️ Continuation failed, using original response:', continuationError.message);
+      }
+    }
+
+    // Final validation
+    const finalLength = claudeResponse.length;
+    const hasValidStructure = claudeResponse.toLowerCase().includes('<!doctype') && 
+                             claudeResponse.toLowerCase().includes('</html>');
+
+    console.log('📊 Final response stats:', {
+      length: finalLength,
+      hasValidStructure,
+      wasTruncated: isTruncated,
+      tokensUsed: data.usage?.output_tokens || 'unknown'
+    });
 
     return res.status(200).json({
       success: true,
@@ -117,7 +201,13 @@ export default async function handler(req, res) {
       source: 'claude-api',
       model: 'claude-opus-4-20250514',
       reportType: reportType,
-      vercelPro: true
+      vercelPro: true,
+      metadata: {
+        originalLength: data.content[0]?.text?.length || 0,
+        finalLength: finalLength,
+        wasTruncated: isTruncated,
+        tokensUsed: data.usage?.output_tokens || 0
+      }
     });
 
   } catch (error) {
