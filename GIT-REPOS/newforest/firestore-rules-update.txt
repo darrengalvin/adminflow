@@ -1,0 +1,104 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Global read access for authenticated users
+    match /{document=**} {
+      allow read: if isAuthenticated();
+    }
+
+    // ========== NEW: Admin App User Data ==========
+    // Users collection for admin app credentials and configurations
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    // ============================================
+
+    // Website Leads Collection
+    match /websiteLeads/{documentId} {
+      // Allow create with valid data
+      allow create: if validateWebsiteLead(request.resource.data);
+      
+      // Allow update with valid data and allowed fields
+      allow update: if validateWebsiteLead(request.resource.data)
+                   && onlyAllowedFieldsChanged(resource.data, request.resource.data);
+    }
+    
+    // Email Settings and Templates
+    match /emailSettings/{document} {
+      allow read, write: if isAuthenticated();
+      
+      match /templates/{templateId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // Email Collections
+    match /emails/{emailId} {
+      allow read, write: if isAuthenticated();
+      
+      match /versions/{versionId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // Experience Emails Collection
+    match /experienceEmails/{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Public Access Collections
+    match /eventIdeas/{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /socialMediaPosts/{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /socialMediaTimeline/{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+  }
+
+  // Validation Functions
+  function validateWebsiteLead(data) {
+    return data.keys().hasAll([
+      'businessInfo', 
+      'selections', 
+      'currentStep', 
+      'dateCreated'
+    ])
+    && data.businessInfo is map
+    && data.selections is map
+    && data.currentStep is number
+    && data.dateCreated is timestamp;
+  }
+
+  function onlyAllowedFieldsChanged(old, new) {
+    let allowedFields = [
+      'selections',
+      'currentStep',
+      'name',
+      'isComplete',
+      'process',
+      'formType',
+      'status',
+      'processedAt',
+      'emailContent',
+      'isRead',
+      'instructions',
+      'template',
+      'updatedAt',
+      'updatedBy'
+    ];
+    return new.diff(old).affectedKeys().hasOnly(allowedFields);
+  }
+} 

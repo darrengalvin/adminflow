@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can only access their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow access to user's credentials subcollection
+      match /credentials/{credentialId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        // Validate credential structure
+        allow create, update: if request.auth != null && 
+          request.auth.uid == userId &&
+          request.resource.data.keys().hasAll(['name', 'service', 'type', 'fields', 'isActive', 'createdAt', 'updatedAt']) &&
+          request.resource.data.fields is list &&
+          request.resource.data.isActive is bool;
+      }
+      
+      // Allow access to user's configs subcollection  
+      match /configs/{configId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Allow access to user's credential templates (for custom templates)
+      match /templates/{templateId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Ensure users can only create documents with their own UID
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Optional: Allow users to read shared configurations (if needed)
+    match /sharedConfigs/{configId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (resource == null || resource.data.createdBy == request.auth.uid);
+    }
+    
+    // Optional: System-wide settings (admin only)
+    match /systemSettings/{settingId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        request.auth.token.admin == true;
+    }
+  }
+} 
